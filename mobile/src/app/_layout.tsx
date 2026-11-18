@@ -65,6 +65,17 @@ function Navigator({ fontsReady }: { fontsReady: boolean }) {
   );
 }
 
+// Pop-ups (bottom sheets, story viewer) are rendered by the browser outside the app column, pinned to the whole
+// window. On wide screens, keep them inside the same 440px column so desktop matches what phones show.
+if (Platform.OS === "web" && typeof document !== "undefined" && !document.getElementById("kizayu-frame-css")) {
+  const style = document.createElement("style");
+  style.id = "kizayu-frame-css";
+  style.textContent = `@media (min-width: 600px) {
+    [role="dialog"][aria-modal="true"] { left: 50% !important; right: auto !important; width: 440px !important; transform: translateX(-50%); }
+  }`;
+  document.head.appendChild(style);
+}
+
 /** On a wide desktop browser, show the app in a centred phone-width column instead of stretching it edge to edge. */
 function WebFrame({ children }: { children: React.ReactNode }) {
   const { width } = useWindowDimensions();
