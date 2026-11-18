@@ -34,7 +34,7 @@ function AddDoctorSheet({ visible, onClose, onAdded }: { visible: boolean; onClo
   const valid = mode === "email" ? /\S+@\S+\.\S+/.test(email) : name.trim().length >= 2 && specialty.trim().length >= 2;
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: "rgba(23,17,46,0.45)", justifyContent: "flex-end" }}>
+      <View style={{ flex: 1, backgroundColor: "rgba(10,13,18,0.55)", justifyContent: "flex-end" }}>
         <View style={{ backgroundColor: colors.bg, padding: 20, borderTopLeftRadius: 30, borderTopRightRadius: 30 }}>
           <View style={{ width: 44, height: 5, borderRadius: 3, backgroundColor: colors.border, alignSelf: "center", marginBottom: 14 }} />
           <Text style={{ fontSize: 22, fontWeight: "800" }}>Add your doctor</Text>

@@ -59,7 +59,7 @@ function Board({ s, size, onToken }: { s: L.LudoState; size: number; onToken: (i
   const startCells = new Map(L.START.map((abs, c) => [L.TRACK[abs].join(","), c]));
   const stars = new Set([8, 21, 34, 47].map(a => L.TRACK[a].join(",")));
   const sq = (r: number, c: number, bg: string, child?: React.ReactNode, key?: string) => (
-    <View key={key ?? `${r}-${c}`} style={{ position: "absolute", left: c * cell, top: r * cell, width: cell, height: cell, backgroundColor: bg, borderWidth: 0.5, borderColor: "#D9D3EA", alignItems: "center", justifyContent: "center" }}>{child}</View>
+    <View key={key ?? `${r}-${c}`} style={{ position: "absolute", left: c * cell, top: r * cell, width: cell, height: cell, backgroundColor: bg, borderWidth: 0.5, borderColor: "#D6E2E9", alignItems: "center", justifyContent: "center" }}>{child}</View>
   );
 
   // Group tokens by cell so stacked tokens are offset and readable.
@@ -74,7 +74,7 @@ function Board({ s, size, onToken }: { s: L.LudoState; size: number; onToken: (i
   });
 
   return (
-    <View style={{ width: size, height: size, alignSelf: "center", backgroundColor: "#fff", borderRadius: 8, overflow: "hidden", borderWidth: 2, borderColor: "#CFC6EA" }}>
+    <View style={{ width: size, height: size, alignSelf: "center", backgroundColor: "#fff", borderRadius: 8, overflow: "hidden", borderWidth: 2, borderColor: "#C6D6DF" }}>
       {/* yards */}
       {[[0, 0], [0, 9], [9, 9], [9, 0]].map(([r, c], color) => (
         <View key={`y${color}`} style={{ position: "absolute", left: c * cell, top: r * cell, width: 6 * cell, height: 6 * cell, backgroundColor: L.COLORS[color], padding: cell * 0.7 }}>
@@ -85,11 +85,11 @@ function Board({ s, size, onToken }: { s: L.LudoState; size: number; onToken: (i
       {L.TRACK.map(([r, c]) => {
         const k = `${r},${c}`;
         const startOf = startCells.get(k);
-        return sq(r, c, startOf != null ? L.COLORS[startOf] : "#fff", stars.has(k) ? <Text style={{ fontSize: cell * 0.55, color: "#B9AEDB" }}>★</Text> : startOf != null ? <Text style={{ fontSize: cell * 0.5, color: "#fff" }}>★</Text> : null);
+        return sq(r, c, startOf != null ? L.COLORS[startOf] : "#fff", stars.has(k) ? <Text style={{ fontSize: cell * 0.55, color: "#9FB8C6" }}>★</Text> : startOf != null ? <Text style={{ fontSize: cell * 0.5, color: "#fff" }}>★</Text> : null);
       })}
       {L.HOME_COLUMN.flatMap((col, color) => col.map(([r, c]) => sq(r, c, L.COLORS[color], null, `h${color}-${r}-${c}`)))}
       {/* center */}
-      <View style={{ position: "absolute", left: 6 * cell, top: 6 * cell, width: 3 * cell, height: 3 * cell, backgroundColor: "#F5EFFF", alignItems: "center", justifyContent: "center" }}>
+      <View style={{ position: "absolute", left: 6 * cell, top: 6 * cell, width: 3 * cell, height: 3 * cell, backgroundColor: "#ECF8FC", alignItems: "center", justifyContent: "center" }}>
         <Text style={{ fontSize: cell * 1.2 }}>🏠</Text>
       </View>
       {/* tokens */}

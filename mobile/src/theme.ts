@@ -1,18 +1,20 @@
-// Kizayu design tokens. Soft lavender surfaces, deep violet accents, generous radii and gentle depth.
+// Kizayu design tokens, matched to the logo: electric cyan on deep black.
+// Cyan is the accent (icons, links, highlights); deep ink gradients carry white text, so contrast stays high.
 
 export const colors = {
-  primary: "#6C3CF0",
-  primaryDark: "#4E22C9",
-  primarySoft: "#EFE9FF",
-  primaryTint: "#F6F2FF",
-  accent: "#B65CFF",
-  bg: "#F7F4FF",
+  primary: "#0088B8",      // readable cyan for text, icons and borders on white
+  primaryDark: "#00668C",
+  primarySoft: "#DDF5FC",
+  primaryTint: "#EFFAFD",
+  accent: "#00D4FF",       // logo cyan, for glows and highlights on dark surfaces
+  ink: "#0A0D12",          // logo black
+  bg: "#F4F8FA",
   card: "#FFFFFF",
-  text: "#17112E",
-  muted: "#6F6A86",
-  faint: "#A9A4BF",
-  border: "#ECE7FA",
-  hairline: "rgba(108, 60, 240, 0.08)",
+  text: "#0B1220",
+  muted: "#5E6A78",
+  faint: "#A2ACB8",
+  border: "#E2EAEF",
+  hairline: "rgba(0, 136, 184, 0.10)",
   success: "#18B26B",
   successSoft: "#E3F8EE",
   warn: "#F2A100",
@@ -20,19 +22,20 @@ export const colors = {
   danger: "#EF4565",
   dangerSoft: "#FDE8EC",
   gold: "#FFC845",
+  scrim: "rgba(10, 13, 18, 0.55)",
 };
 
 /** Gradient stops (top-left → bottom-right). */
 export const gradients = {
-  primary: ["#8B5CFF", "#6C3CF0", "#5126D6"] as const,
-  hero: ["#7C4DFF", "#9B5CFF", "#C27BFF"] as const,
-  premium: ["#2A1563", "#5B2BD9", "#9A5CFF"] as const,
-  screen: ["#F9F6FF", "#F3EEFF", "#FBFAFF"] as const,
-  ring: ["#8B5CFF", "#D16BFF", "#FF8AC2"] as const,
+  primary: ["#1A2430", "#0E151D", "#05080C"] as const,   // ink buttons with white text
+  hero: ["#0A0D12", "#0B1F2B", "#00506A"] as const,       // black fading into deep cyan
+  premium: ["#05080C", "#0D1B26", "#006E8F"] as const,
+  screen: ["#F6FAFC", "#EEF6FA", "#FAFCFD"] as const,
+  ring: ["#00D4FF", "#0096D6", "#7FF0FF"] as const,
   danger: ["#FF6B86", "#EF4565"] as const,
   success: ["#2FD08A", "#18B26B"] as const,
   sunrise: ["#FFB36B", "#FF7A9C"] as const,
-  ocean: ["#4FC3FF", "#4F7DF3"] as const,
+  ocean: ["#3FD8FF", "#0088B8"] as const,
 };
 
 export const radius = { xs: 8, sm: 12, md: 18, lg: 24, xl: 30, pill: 999 };
@@ -56,15 +59,16 @@ export const type = {
 };
 
 export const shadow = {
-  shadowColor: "#3B1E8F",
+  shadowColor: "#0B2533",
   shadowOpacity: 0.07,
   shadowRadius: 18,
   shadowOffset: { width: 0, height: 8 },
   elevation: 3,
 } as const;
 
+/** Cyan glow under dark buttons and hero cards, like the logo on black. */
 export const glow = {
-  shadowColor: "#6C3CF0",
+  shadowColor: "#00B8E6",
   shadowOpacity: 0.35,
   shadowRadius: 16,
   shadowOffset: { width: 0, height: 8 },

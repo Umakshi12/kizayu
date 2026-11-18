@@ -146,7 +146,7 @@ export function Avatar({ uri, name, size = 44, ring, status }: { uri?: string | 
   const face = uri ? (
     <Image source={{ uri: mediaUrl(uri) }} style={{ width: inner, height: inner, borderRadius: inner / 2, backgroundColor: colors.primarySoft }} />
   ) : (
-    <LinearGradient colors={["#EFE9FF", "#E2D6FF"]} style={{ width: inner, height: inner, borderRadius: inner / 2, alignItems: "center", justifyContent: "center" }}>
+    <LinearGradient colors={["#E3F7FD", "#C9EEF9"]} style={{ width: inner, height: inner, borderRadius: inner / 2, alignItems: "center", justifyContent: "center" }}>
       <Text style={{ color: colors.primary, fontWeight: "800", fontSize: inner / 2.5 }}>{initials(name)}</Text>
     </LinearGradient>
   );
@@ -190,7 +190,7 @@ function Shimmer({ style }: { style: StyleProp<ViewStyle> }) {
     loop.start();
     return () => loop.stop();
   }, [v]);
-  return <Animated.View style={[{ backgroundColor: "#E9E3FA", borderRadius: radius.sm, opacity: v }, style]} />;
+  return <Animated.View style={[{ backgroundColor: "#E1EBF0", borderRadius: radius.sm, opacity: v }, style]} />;
 }
 
 /** Placeholder cards while content loads. */
@@ -222,7 +222,7 @@ export function Empty({ icon = "sparkles-outline", title, text, actionLabel, onA
 }) {
   return (
     <View style={{ alignItems: "center", paddingVertical: compact ? 18 : 36, paddingHorizontal: 24 }}>
-      <LinearGradient colors={["#F3EDFF", "#E7DCFF"]} style={{ width: compact ? 56 : 76, height: compact ? 56 : 76, borderRadius: 40, alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+      <LinearGradient colors={["#EAF8FD", "#D3F2FB"]} style={{ width: compact ? 56 : 76, height: compact ? 56 : 76, borderRadius: 40, alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
         <Ionicons name={icon} size={compact ? 26 : 34} color={colors.primary} />
       </LinearGradient>
       {title && <Text style={{ fontWeight: "800", fontSize: 17, textAlign: "center", marginBottom: 4 }}>{title}</Text>}
@@ -261,5 +261,5 @@ const s = StyleSheet.create({
   sectionAction: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: radius.pill, backgroundColor: colors.primarySoft },
   label: { ...type.label, color: colors.text, marginBottom: 8 },
   input: { backgroundColor: "#fff", borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16 },
-  inputFocused: { borderColor: colors.primary, backgroundColor: "#FDFCFF" },
+  inputFocused: { borderColor: colors.primary, backgroundColor: "#FBFEFF" },
 });

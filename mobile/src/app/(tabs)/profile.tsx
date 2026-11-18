@@ -61,7 +61,7 @@ export default function Profile() {
       : { icon: "medkit-outline", tint: colors.success, bg: colors.successSoft, title: "I'm a doctor", sub: "Let patients connect with you", href: "/doctor-setup" },
   ];
   const support: Row[] = [
-    { icon: "help-buoy", tint: "#7C4DFF", bg: colors.primarySoft, title: "Help & Support", href: "/help" },
+    { icon: "help-buoy", tint: "#0088B8", bg: colors.primarySoft, title: "Help & Support", href: "/help" },
     { icon: "information-circle", tint: colors.muted, bg: "#EEEDF3", title: `About ${APP_NAME}`, href: "/about" },
   ];
 

@@ -129,7 +129,7 @@ export default function Games() {
           <LinearGradient colors={["#7B4DF5", "#B28DFF"]} style={{ borderRadius: radius.lg, padding: 22, alignItems: "center" }}>
             <Ionicons name="game-controller" size={56} color="#fff" />
             <Text style={{ color: "#fff", fontSize: 24, fontWeight: "800", marginTop: 6 }}>Play Together with Your Family</Text>
-            <Text style={{ color: "#EEE8FF", marginBottom: 14 }}>Fun games for all ages</Text>
+            <Text style={{ color: "#BFEFFB", marginBottom: 14 }}>Fun games for all ages</Text>
             <Button title="Start Playing" icon="arrow-forward" variant="soft" onPress={() => featured && open(featured)} style={{ backgroundColor: "#fff" }} />
           </LinearGradient>
 

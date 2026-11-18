@@ -39,12 +39,12 @@ export default function Premium() {
         <Empty icon="diamond-outline" title="Premium is coming soon" text="Everyone currently gets all features for free. We'll let you know when Premium plans are available." />
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, maxWidth: 560, width: "100%", alignSelf: "center" }}>
-          <LinearGradient colors={["#6B3DF0", "#A57BFF"]} style={{ borderRadius: radius.lg, padding: 22, alignItems: "center" }}>
+          <LinearGradient colors={["#0088B8", "#00506A"]} style={{ borderRadius: radius.lg, padding: 22, alignItems: "center" }}>
             <Ionicons name="trophy" size={48} color="#FFD34D" />
             <Text style={{ color: "#fff", fontSize: 22, fontWeight: "800", marginTop: 6 }}>
               {status.data?.premium ? "You're on Premium" : "Do more together"}
             </Text>
-            <Text style={{ color: "#EEE8FF", textAlign: "center", marginTop: 4 }}>
+            <Text style={{ color: "#BFEFFB", textAlign: "center", marginTop: 4 }}>
               {sub ? `${sub.plan === "yearly" ? "Yearly" : "Monthly"} plan • ${sub.status === "canceled" ? "ends" : "renews"} ${new Date(sub.expiresAt).toLocaleDateString()}`
                 : "More circles, longer location sharing and unlimited health records."}
             </Text>

@@ -6,7 +6,7 @@ export const TILE_URL = process.env.EXPO_PUBLIC_MAP_TILE_URL ?? "https://tile.op
 export const MAP_HTML = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>html,body,#map{height:100%;margin:0}.pin{width:34px;height:34px;border-radius:17px;background:#6B3DF0;color:#fff;font:700 13px sans-serif;
+<style>html,body,#map{height:100%;margin:0}.pin{width:34px;height:34px;border-radius:17px;background:#0088B8;color:#fff;font:700 13px sans-serif;
 display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}.pin.me{background:#1E9BF0}</style></head>
 <body><div id="map"></div><script>
 var map=L.map('map',{zoomControl:false}).setView([20.59,78.96],4);

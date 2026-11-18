@@ -89,7 +89,7 @@ export default function Care() {
               ))}
               {!others.length && (
                 <Pressable onPress={() => router.push("/circles")} style={{ alignItems: "center", width: 68 }} accessibilityLabel="Invite family">
-                  <View style={{ width: 58, height: 58, borderRadius: 29, borderWidth: 2, borderStyle: "dashed", borderColor: "#C9B6FF", alignItems: "center", justifyContent: "center" }}>
+                  <View style={{ width: 58, height: 58, borderRadius: 29, borderWidth: 2, borderStyle: "dashed", borderColor: "#7FD9F0", alignItems: "center", justifyContent: "center" }}>
                     <Ionicons name="person-add" size={22} color={colors.primary} />
                   </View>
                   <Text style={{ fontWeight: "700", marginTop: 6, fontSize: 13, color: colors.primary }}>Invite</Text>

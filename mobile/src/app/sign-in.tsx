@@ -10,6 +10,7 @@ import { APP_NAME } from "../config";
 import { Button, Card, Field, GradientCard, Screen } from "../components/ui";
 import { GoogleButton, googleClientConfigured } from "../components/GoogleButton";
 import { DevCode } from "../components/DevCode";
+import { Logo } from "../components/Logo";
 import { colors, radius, shadow } from "../theme";
 import { haptic } from "../haptics";
 import type { AuthMethods, Me } from "../types";
@@ -96,9 +97,7 @@ export default function SignIn() {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 20, flexGrow: 1, justifyContent: "center", maxWidth: 480, width: "100%", alignSelf: "center" }} keyboardShouldPersistTaps="handled">
           <GradientCard style={{ alignItems: "center", paddingVertical: 30, marginBottom: -28, paddingBottom: 54 }}>
-            <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.35)" }}>
-              <Ionicons name="heart" size={38} color="#fff" />
-            </View>
+            <Logo size={96} />
             <Text style={{ fontSize: 32, fontWeight: "800", color: "#fff", marginTop: 14, letterSpacing: -0.8 }}>{APP_NAME}</Text>
             <Text style={{ color: "rgba(255,255,255,0.85)", marginTop: 4 }}>Stay close to the people who matter</Text>
           </GradientCard>

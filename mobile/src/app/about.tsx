@@ -5,6 +5,7 @@ import Constants from "expo-constants";
 import { Ionicons } from "@expo/vector-icons";
 import { APP_NAME } from "../config";
 import { Card, Header, IconName, Screen } from "../components/ui";
+import { Logo } from "../components/Logo";
 import { colors } from "../theme";
 
 const ROWS: { icon: IconName; title: string; onPress: () => void }[] = [
@@ -21,7 +22,7 @@ export default function About() {
       <Header title={`About ${APP_NAME}`} back />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40, maxWidth: 560, width: "100%", alignSelf: "center" }}>
         <View style={{ alignItems: "center", marginVertical: 20 }}>
-          <Ionicons name="heart-circle" size={84} color={colors.primary} />
+          <Logo size={88} tile />
           <Text style={{ fontSize: 28, fontWeight: "800", color: colors.text }}>{APP_NAME}</Text>
           <Text style={{ color: colors.muted, marginTop: 2 }}>Version {version}</Text>
         </View>

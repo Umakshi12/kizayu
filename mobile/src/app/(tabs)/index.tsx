@@ -42,7 +42,7 @@ function Stories() {
     <>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 18, gap: 16, paddingVertical: 6 }}>
         <Pressable onPress={() => add.mutate()} style={{ alignItems: "center", width: 66 }} accessibilityLabel="Add story">
-          <View style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderStyle: "dashed", borderColor: "#C9B6FF", alignItems: "center", justifyContent: "center", backgroundColor: "#fff" }}>
+          <View style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderStyle: "dashed", borderColor: "#7FD9F0", alignItems: "center", justifyContent: "center", backgroundColor: "#fff" }}>
             <LinearGradient colors={gradients.primary} style={{ width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" }}>
               <Ionicons name={add.isPending ? "hourglass-outline" : "add"} size={20} color="#fff" />
             </LinearGradient>
@@ -133,7 +133,7 @@ function PostCard({ post: p }: { post: Post }) {
           <Image source={{ uri: mediaUrl(p.imageUrl) }} style={{ width: "100%", aspectRatio: 1, borderRadius: radius.lg, backgroundColor: colors.primaryTint }} />
           {p.caption && (
             <View style={{ position: "absolute", left: 12, bottom: 12, maxWidth: "85%", borderRadius: radius.pill, overflow: "hidden" }}>
-              <LinearGradient colors={["rgba(23,17,46,0.72)", "rgba(23,17,46,0.5)"]} style={{ paddingHorizontal: 14, paddingVertical: 7 }}>
+              <LinearGradient colors={["rgba(10,13,18,0.72)", "rgba(10,13,18,0.5)"]} style={{ paddingHorizontal: 14, paddingVertical: 7 }}>
                 <Text style={{ color: "#fff", fontWeight: "600" }}>{p.caption}</Text>
               </LinearGradient>
             </View>

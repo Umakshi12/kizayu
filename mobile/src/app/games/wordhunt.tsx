@@ -9,7 +9,7 @@ import type { Game } from "../../types";
 import * as W from "../../games/wordhunt";
 
 const SIZE = 9;
-const FOUND_COLORS = ["#C9B8FF", "#B5E8CB", "#FFE19A", "#BFE0FB", "#FFC4C6", "#D7F0A8", "#F9C9EC", "#C3F1EE", "#FFD6B0", "#D9D3EA"];
+const FOUND_COLORS = ["#C9B8FF", "#B5E8CB", "#FFE19A", "#BFE0FB", "#FFC4C6", "#D7F0A8", "#F9C9EC", "#C3F1EE", "#FFD6B0", "#D6E2E9"];
 
 export default function WordHunt() {
   const qc = useQueryClient();

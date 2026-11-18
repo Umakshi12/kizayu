@@ -24,7 +24,7 @@ export default function TabLayout() {
         tabBarStyle: {
           height: Platform.OS === "ios" ? 88 : 72, paddingTop: 8, paddingBottom: Platform.OS === "ios" ? 26 : 10,
           backgroundColor: "#fff", borderTopWidth: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28,
-          shadowColor: "#3B1E8F", shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: -6 }, elevation: 16,
+          shadowColor: "#0B2533", shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: -6 }, elevation: 16,
           position: "absolute",
         },
         sceneStyle: { backgroundColor: colors.bg, paddingBottom: Platform.OS === "ios" ? 88 : 72 },
