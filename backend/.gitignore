@@ -1,0 +1,6 @@
+node_modules
+.pgdata
+uploads
+.env
+dev.db*
+.test-uploads

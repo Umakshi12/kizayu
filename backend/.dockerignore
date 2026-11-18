@@ -1,0 +1,9 @@
+node_modules
+.pgdata
+uploads
+.test-uploads
+.env
+*.log
+src/smoke.ts
+src/testing
+scripts

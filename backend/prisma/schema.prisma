@@ -1,0 +1,359 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"] // native = this PC; debian = the Docker image used in production
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  username     String   @unique
+  email        String?  @unique
+  phone        String?  @unique // E.164, e.g. +919876543210
+  googleId     String?  @unique
+  passwordHash String?
+  avatarUrl    String?
+  age          Int?
+  gender       String?
+  premium      Boolean  @default(false) // cached; source of truth is Subscription
+  status       String   @default("Active") // Active | All good | Busy
+  createdAt    DateTime @default(now())
+
+  memberships   CircleMember[]
+  posts         Post[]
+  likes         Like[]
+  comments      Comment[]
+  stories       Story[]
+  tasks         Task[]
+  appointments  Appointment[]
+  pulseEvents   PulseEvent[]
+  vitals        Vital[]
+  medications   Medication[]
+  records       HealthRecord[]
+  gameScores    GameScore[]
+  doctorLinks   DoctorLink[]
+  messages      Message[]
+  location      LocationShare?
+  safety        SafetySetting?
+  pushTokens    PushToken[]
+  notifications Notification[]
+  subscriptions Subscription[]
+  tickets       SupportTicket[]
+  doctorThreads DoctorThread[]
+  doctorMsgs    DoctorMessage[]
+  doctorProfile Doctor?        @relation("DoctorAccount")
+  reports       Report[]
+  blocking      Block[]        @relation("Blocker")
+  blockedBy     Block[]        @relation("Blocked")
+}
+
+model VerificationCode {
+  id        String    @id @default(cuid())
+  kind      String    // password_reset | phone_login
+  target    String    // email or phone
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  @@index([kind, target])
+}
+
+model Circle {
+  id         String   @id @default(cuid())
+  name       String
+  type       String   // Family | Friends | Relatives
+  inviteCode String   @unique @default(cuid())
+  createdAt  DateTime @default(now())
+  members    CircleMember[]
+  posts      Post[]
+  pulse      PulseEvent[]
+  messages   Message[]
+}
+
+model CircleMember {
+  id       String @id @default(cuid())
+  circleId String
+  userId   String
+  role     String @default("member") // owner | member
+  circle   Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([circleId, userId])
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  authorId  String
+  circleId  String?
+  kind      String   @default("snap") // snap | checkin | activity
+  caption   String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  circle    Circle?  @relation(fields: [circleId], references: [id], onDelete: SetNull)
+  likes     Like[]
+  comments  Comment[]
+  @@index([circleId, createdAt])
+}
+
+model Like {
+  postId String
+  userId String
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([postId, userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+  post      Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Story {
+  id        String   @id @default(cuid())
+  authorId  String
+  imageUrl  String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  author    User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  subtitle    String?
+  icon        String   @default("check")
+  dueTime     String?
+  targetCount Int      @default(1)
+  doneCount   Int      @default(0)
+  doneDate    String?
+  createdAt   DateTime @default(now())
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Appointment {
+  id       String   @id @default(cuid())
+  userId   String
+  title    String
+  kind     String   @default("doctor") // doctor | call | other
+  startsAt DateTime
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PulseEvent {
+  id        String   @id @default(cuid())
+  circleId  String
+  userId    String
+  kind      String   // completed | appointment | photo | alert
+  text      String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  circle    Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([circleId, createdAt])
+}
+
+model Vital {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String   // heart_rate | bp | spo2
+  value      String
+  unit       String
+  recordedAt DateTime @default(now())
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Medication {
+  id        String  @id @default(cuid())
+  userId    String
+  name      String
+  schedule  String
+  takenDate String?
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model HealthRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // prescription | lab | history | appointment
+  title     String
+  notes     String?
+  fileUrl   String?
+  createdAt DateTime @default(now())
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Doctor {
+  id        String  @id @default(cuid())
+  name      String
+  specialty String
+  rating    Float
+  reviews   Int
+  phone     String?
+  avatarUrl String?
+  userId    String? @unique // doctor's own login, for the doctor inbox
+  user      User?   @relation("DoctorAccount", fields: [userId], references: [id], onDelete: SetNull)
+  links     DoctorLink[]
+  threads   DoctorThread[]
+}
+
+model DoctorLink {
+  id         String @id @default(cuid())
+  userId     String
+  doctorId   String
+  sharedWith String @default("")
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doctor     Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  @@unique([userId, doctorId])
+}
+
+model DoctorThread {
+  id        String   @id @default(cuid())
+  patientId String
+  doctorId  String
+  updatedAt DateTime @default(now()) @updatedAt
+  patient   User     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  messages  DoctorMessage[]
+  @@unique([patientId, doctorId])
+}
+
+model DoctorMessage {
+  id        String   @id @default(cuid())
+  threadId  String
+  senderId  String
+  text      String
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+  thread    DoctorThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender    User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  @@index([threadId, createdAt])
+}
+
+model Game {
+  id      String @id @default(cuid())
+  title   String
+  tagline String
+  icon    String
+  scores  GameScore[]
+}
+
+model GameScore {
+  id        String   @id @default(cuid())
+  userId    String
+  gameId    String
+  score     Int
+  createdAt DateTime @default(now())
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game      Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  circleId  String
+  userId    String
+  text      String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  circle    Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([circleId, createdAt])
+}
+
+model LocationShare {
+  userId       String    @id
+  lat          Float
+  lng          Float
+  label        String?
+  sharingWith  String?
+  sharingUntil DateTime?
+  updatedAt    DateTime  @default(now()) @updatedAt
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SafetySetting {
+  userId       String  @id
+  homeAlerts   Boolean @default(true)
+  sosAlert     Boolean @default(true)
+  shareJourney Boolean @default(false)
+  homeLat      Float?
+  homeLng      Float?
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PushToken {
+  token     String   @id // ExponentPushToken[...]
+  userId    String
+  platform  String   // ios | android
+  createdAt DateTime @default(now())
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  kind      String    // chat | sos | comment | doctor | home | system
+  title     String
+  body      String
+  data      String    @default("{}") // JSON: where to navigate
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String
+  plan      String   // monthly | yearly
+  provider  String   // dev | google | apple
+  status    String   // active | canceled
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model SupportTicket {
+  id        String   @id @default(cuid())
+  userId    String
+  subject   String
+  message   String
+  status    String   @default("open") // open | closed
+  createdAt DateTime @default(now())
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Content reports from users (the app stores require a way to report abusive content). Reviewed by the team.
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String
+  targetType String   // post | comment | message | user
+  targetId   String
+  reason     String   // spam | harassment | inappropriate | other
+  details    String?
+  status     String   @default("open") // open | resolved
+  createdAt  DateTime @default(now())
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  @@unique([reporterId, targetType, targetId])
+}
+
+// Posts, comments, stories, messages and notifications from a blocked person are hidden from the blocker.
+model Block {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  @@id([blockerId, blockedId])
+}
