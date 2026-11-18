@@ -46,7 +46,8 @@ function createUser(data: { name: string; username: string; email?: string; phon
 
 // Which sign-in methods the server can actually deliver (the app hides the rest).
 authRouter.get("/auth/methods", (_req, res) => {
-  res.json({ email: true, phone: true, google: googleConfigured(), devCodes: DEV_CODES && (!smsConfigured() || !emailConfigured()) });
+  // Phone sign-in needs an SMS provider in production (in dev, codes are shown on screen instead).
+  res.json({ email: true, phone: smsConfigured() || DEV_CODES, google: googleConfigured(), devCodes: DEV_CODES && (!smsConfigured() || !emailConfigured()) });
 });
 
 // ---------- Email + password ----------

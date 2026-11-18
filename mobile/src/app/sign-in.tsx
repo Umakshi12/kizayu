@@ -104,7 +104,7 @@ export default function SignIn() {
 
           <Card style={{ padding: 20, marginHorizontal: 6 }}>
             <View style={{ flexDirection: "row", backgroundColor: colors.primaryTint, borderRadius: radius.pill, padding: 4, marginBottom: 20 }}>
-              {(["email", "phone"] as Tab[]).map(t => (
+              {((methods.data?.phone === false ? ["email"] : ["email", "phone"]) as Tab[]).map(t => (
                 <Pressable key={t} onPress={() => { haptic.select(); setTab(t); setError(null); }} accessibilityRole="tab" accessibilityState={{ selected: tab === t }}
                   style={{ flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: radius.pill, backgroundColor: tab === t ? "#fff" : "transparent", ...(tab === t ? shadow : {}) }}>
                   <Text style={{ fontWeight: "700", color: tab === t ? colors.primary : colors.muted }}>{t === "email" ? "Email" : "Phone"}</Text>
