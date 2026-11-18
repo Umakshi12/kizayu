@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { Platform, useWindowDimensions, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
@@ -63,6 +65,19 @@ function Navigator({ fontsReady }: { fontsReady: boolean }) {
   );
 }
 
+/** On a wide desktop browser, show the app in a centred phone-width column instead of stretching it edge to edge. */
+function WebFrame({ children }: { children: React.ReactNode }) {
+  const { width } = useWindowDimensions();
+  if (Platform.OS !== "web" || width < 600) return <>{children}</>;
+  return (
+    <LinearGradient colors={["#05080C", "#0B1F2B", "#00506A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: "center" }}>
+      <View style={{ flex: 1, width: 440, overflow: "hidden", backgroundColor: colors.bg, shadowColor: "#00D4FF", shadowOpacity: 0.25, shadowRadius: 40 }}>
+        {children}
+      </View>
+    </LinearGradient>
+  );
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(FONT_FILES);
   return (
@@ -71,7 +86,9 @@ export default function RootLayout() {
         <AuthProvider>
           <StatusBar style="dark" />
           {/* If a font fails to load, carry on with the system font rather than blocking the app. */}
-          <Navigator fontsReady={fontsLoaded || !!fontError} />
+          <WebFrame>
+            <Navigator fontsReady={fontsLoaded || !!fontError} />
+          </WebFrame>
         </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>
