@@ -66,6 +66,23 @@
       ]
     ],
     "scheme": "kizayu",
-    "description": "Kizayu keeps families close: share moments, look after each other's health, plan the day together and stay safe."
+    "description": "Kizayu keeps families close: share moments, look after each other's health, plan the day together and stay safe.",
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "576a9e82-fc53-424b-9dfe-d1ba7bcee436"
+      }
+    },
+    "owner": "astonixai",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/576a9e82-fc53-424b-9dfe-d1ba7bcee436"
+    }
   }
 }
