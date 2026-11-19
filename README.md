@@ -148,7 +148,7 @@ Push notifications and Google sign-in don't work in Expo Go or the browser previ
    `DATABASE_URL`, `NODE_ENV=production`, `JWT_SECRET` (a random string of 32+ characters), `PUBLIC_URL` (your API
    address), plus the SMS, email and storage settings from the table above. Check that `https://<your-api>/health`
    returns `{"ok":true}`.
-3. **Point the app at it.** Replace `https://api.kizayu.app` in `mobile/eas.json` with your API address.
+3. **Point the app at it.** Replace `https://kizayu.onrender.com` in `mobile/eas.json` with your API address.
 4. **Create an Expo account**, then run these in `mobile/`: `npx eas-cli login`, then `npx eas-cli init`. This
    connects the project and turns on push notifications.
 5. **Test build:** `npx eas-cli build --profile preview --platform android` gives you an APK to install on Android
