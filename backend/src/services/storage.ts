@@ -6,16 +6,19 @@ import { IS_PROD, S3 } from "../config";
 
 // Tests set UPLOAD_DIR so their images never land in the app's uploads folder.
 export const UPLOAD_DIR = path.resolve(process.cwd(), process.env.UPLOAD_DIR ?? "uploads");
-const MIME: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", heic: "image/heic" };
+const MIME: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", heic: "image/heic", mp4: "video/mp4", m4a: "audio/mp4" };
 
 let s3: S3Client | null = null;
 
 /** Saves an image and returns its public URL. S3-compatible storage when configured, else local disk. */
-export async function saveImage(buf: Buffer, ext: string, localBaseUrl: string): Promise<string> {
+export const saveImage = (buf: Buffer, ext: string, localBaseUrl: string) => saveBinary(buf, ext, MIME[ext] ?? "application/octet-stream", localBaseUrl);
+
+/** Saves any file (image, video clip, audio clip) and returns its public URL. */
+export async function saveBinary(buf: Buffer, ext: string, contentType: string, localBaseUrl: string): Promise<string> {
   const key = `uploads/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${ext}`;
   if (S3.bucket) {
     s3 ??= new S3Client({ region: S3.region, ...(S3.endpoint ? { endpoint: S3.endpoint, forcePathStyle: true } : {}) });
-    await s3.send(new PutObjectCommand({ Bucket: S3.bucket, Key: key, Body: buf, ContentType: MIME[ext] ?? "application/octet-stream" }));
+    await s3.send(new PutObjectCommand({ Bucket: S3.bucket, Key: key, Body: buf, ContentType: contentType }));
     const base = S3.publicUrl ?? `https://${S3.bucket}.s3.${S3.region}.amazonaws.com`;
     return `${base.replace(/\/$/, "")}/${key}`;
   }

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kizayu",
     "slug": "kizayu",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -23,8 +23,7 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.kizayu.app",
       "blockedPermissions": [
-        "android.permission.ACCESS_BACKGROUND_LOCATION",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
       ]
     },
     "web": {
@@ -62,6 +61,14 @@
           "imageWidth": 160,
           "resizeMode": "contain",
           "backgroundColor": "#0A0A0C"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Kizayu uses the camera to record video when you send an SOS, and shares it with your emergency contacts.",
+          "microphonePermission": "Kizayu uses the microphone to record audio when you send an SOS, and shares it with your emergency contacts.",
+          "recordAudioAndroid": true
         }
       ]
     ],

@@ -22,8 +22,10 @@ export function NotificationsBridge() {
     void registerForPush().then(r => { if (!r.ok) console.log("[push]", r.reason); });
 
     const socket = getSocket();
-    const refresh = () => qc.invalidateQueries({ queryKey: ["notifications"] });
+    const refresh = () => { qc.invalidateQueries({ queryKey: ["notifications"] }); qc.invalidateQueries({ queryKey: ["sos-active"] }); };
+    const onClip = () => qc.invalidateQueries({ queryKey: ["sos-active"] });
     socket?.on("notification", refresh);
+    socket?.on("sosClip", onClip);
     socket?.on("doctorMessage", () => {
       qc.invalidateQueries({ queryKey: ["doctor-messages"] });
       qc.invalidateQueries({ queryKey: ["doctor-threads"] });
@@ -38,6 +40,7 @@ export function NotificationsBridge() {
     }
     return () => {
       socket?.off("notification", refresh);
+      socket?.off("sosClip", onClip);
       socket?.off("doctorMessage");
       sub?.remove();
     };

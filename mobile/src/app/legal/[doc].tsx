@@ -28,6 +28,7 @@ const DOCS: Record<string, { title: string; sections: [string, string][] }> = {
       ["Location", "Location is collected only while you're sharing it, and sharing stops automatically after the time you choose. We use it to show you on your circle's map and for arrived-home alerts."],
       ["Who can see your data", "Only the people in the circles you share with, plus service providers that host the app for us (for example cloud hosting, push and SMS/email delivery)."],
       ["Your choices", "You can edit or delete what you've shared, stop location sharing, unlink doctors, and delete your account. Contact us through Help & Support."],
+      ["Emergency (SOS) recording", "If you turn on SOS recording and trigger an SOS, the app records short video and audio clips and shares them, with your location, through a private link sent to the emergency contacts you chose and shown to people in your circles. Recording only happens during an SOS you start, while the app is open, with a visible on-screen indicator. Clips are deleted automatically after 30 days, or when you delete your account."],
       ["Security", "Data is sent over encrypted connections and access is limited to what each feature needs."],
     ],
   },

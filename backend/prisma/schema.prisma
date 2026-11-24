@@ -48,6 +48,8 @@ model User {
   doctorProfile Doctor?        @relation("DoctorAccount")
   reports       Report[]
   emergency     EmergencyInfo?
+  sosContacts   SosContact[]
+  sosEvents     SosEvent[]
   blocking      Block[]        @relation("Blocker")
   blockedBy     Block[]        @relation("Blocked")
 }
@@ -289,6 +291,7 @@ model SafetySetting {
   homeAlerts   Boolean @default(true)
   sosAlert     Boolean @default(true)
   shareJourney Boolean @default(false)
+  sosRecording Boolean @default(false) // opt-in: record + share video/audio during an SOS
   homeLat      Float?
   homeLng      Float?
   user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -397,4 +400,44 @@ model EmergencyInfo {
   notes        String?
   updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// People (often family without the app) who get an SMS with a private link when this user raises an SOS.
+model SosContact {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  phone     String   // E.164
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, phone])
+}
+
+// One SOS. "token" is the unguessable part of the public link (/s/<token>) sent to contacts.
+model SosEvent {
+  id           String    @id @default(cuid())
+  userId       String
+  token        String    @unique
+  lat          Float?
+  lng          Float?
+  locUpdatedAt DateTime?
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clips        SosClip[]
+  @@index([userId])
+  @@index([startedAt])
+}
+
+// Short recorded clips (video with audio) uploaded while the SOS is active.
+model SosClip {
+  id        String   @id @default(cuid())
+  eventId   String
+  kind      String   // video | audio
+  url       String
+  bytes     Int
+  seconds   Int?
+  createdAt DateTime @default(now())
+  event     SosEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  @@index([eventId])
 }

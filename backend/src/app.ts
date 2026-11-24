@@ -22,6 +22,7 @@ import { moderationRouter } from "./routes/moderation";
 import { legalRouter } from "./routes/legal";
 import { listsRouter } from "./routes/lists";
 import { emergencyRouter } from "./routes/emergency";
+import { sosPublicRouter, sosRouter } from "./routes/sos";
 import { UPLOAD_DIR } from "./services/storage";
 
 export function createApp() {
@@ -47,11 +48,12 @@ export function createApp() {
   app.get("/health", (_req, res) => res.json({ ok: true }));
 
   app.use(legalRouter); // public /privacy and /terms pages for the store listings
+  app.use(sosPublicRouter); // public private-link page for SOS contacts: /s/<token>
   app.use(authRouter); // public: signup, login, OTP, Google, password reset (/me is protected inside)
 
   app.use(requireAuth);
   app.use(circlesRouter, socialRouter, dayRouter, healthRouter, doctorsRouter, gamesRouter, chatRouter, safetyRouter,
-    notificationsRouter, premiumRouter, supportRouter, moderationRouter, listsRouter, emergencyRouter);
+    notificationsRouter, premiumRouter, supportRouter, moderationRouter, listsRouter, emergencyRouter, sosRouter);
 
   app.use((_req, res) => res.status(404).json({ error: "Not found" }));
   app.use(errorHandler);

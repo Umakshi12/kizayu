@@ -49,6 +49,8 @@ function Navigator({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="chat/[circleId]" />
           <Stack.Screen name="safety" />
           <Stack.Screen name="lists" />
+          <Stack.Screen name="sos" options={{ animation: "fade", gestureEnabled: false }} />
+          <Stack.Screen name="sos-contacts" />
           <Stack.Screen name="emergency" />
           <Stack.Screen name="circles" />
           <Stack.Screen name="notifications" />

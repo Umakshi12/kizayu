@@ -33,6 +33,7 @@ async function main() {
   const { setGoogleVerifier } = await import("./services/google");
   const { prisma } = await import("./db");
   const { HttpError } = await import("./util");
+  const { purgeOldSos } = await import("./routes/sos");
 
   const server = http.createServer(createApp());
   attachRealtime(server);
@@ -516,6 +517,103 @@ async function main() {
   check("medicine saves a reminder time", rem.status === 201 && rem.data.remindAt === "08:30", rem.data);
   const ov = await call("GET", `/health/${demo.user.id}`, t);
   check("overview includes the reminder time", ov.data.medications.find((m: any) => m.name === "Vitamin C")?.remindAt === "08:30", ov.data.medications);
+
+  // =================================================================== SOS: contacts, recording, private link
+  section = "sos";
+  const mp4 = Buffer.concat([Buffer.from([0, 0, 0, 24]), Buffer.from("ftypmp42"), Buffer.alloc(40)]);
+  const upClip = async (id: string, token: string, buf: Buffer, kind = "video") => {
+    const r = await fetch(`${base}/sos/${id}/clips?kind=${kind}&seconds=15`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "video/mp4" }, body: new Uint8Array(buf) });
+    return { status: r.status, data: await r.json().catch(() => null) };
+  };
+
+  check("SOS contact needs a country code", (await call("POST", "/sos/contacts", t, { name: "Aunt", phone: "9876543210" })).status === 400);
+  check("SOS contact needs a name", (await call("POST", "/sos/contacts", t, { name: " ", phone: "+919876543210" })).status === 400);
+  const c1 = await call("POST", "/sos/contacts", t, { name: "Aunt Meera", phone: "+91 98765-43210" });
+  check("add an SOS contact (the number is cleaned up)", c1.status === 201 && c1.data.phone === "+919876543210", c1.data);
+  check("duplicate numbers are refused", (await call("POST", "/sos/contacts", t, { name: "Again", phone: "+919876543210" })).status === 409);
+  const c2 = await call("POST", "/sos/contacts", t, { name: "Uncle Raj", phone: "+14155550123" });
+  check("list SOS contacts", (await call("GET", "/sos/contacts", t)).data.length === 2);
+  check("other people can't see my SOS contacts", (await call("GET", "/sos/contacts", mom.token)).data.length === 0);
+  check("can't delete someone else's contact", (await call("DELETE", `/sos/contacts/${c2.data.id}`, mom.token)).status === 404);
+  check("delete a contact", (await call("DELETE", `/sos/contacts/${c2.data.id}`, t)).status === 204);
+  for (let i = 0; i < 4; i++) await call("POST", "/sos/contacts", t, { name: `Extra ${i}`, phone: `+9198000000${10 + i}` });
+  check("up to five SOS contacts", (await call("POST", "/sos/contacts", t, { name: "Sixth", phone: "+919800000099" })).status === 400);
+
+  check("SOS recording is off until the user opts in", (await call("GET", "/safety", t)).data.sosRecording === false);
+  check("opt in to SOS recording", (await call("PUT", "/safety", t, { sosRecording: true })).data.sosRecording === true);
+  await call("PUT", "/safety", t, { sosAlert: false });
+  check("SOS can't start while SOS alerts are off", (await call("POST", "/sos/start", t, {})).status === 409);
+  await call("PUT", "/safety", t, { sosAlert: true });
+
+  const sMomS = await connect(mom.token);
+  const sosClipEvents: any[] = [];
+  sMomS.on("sosClip", e => sosClipEvents.push(e));
+  pushes.length = 0;
+  const st = await call("POST", "/sos/start", t, { lat: 19.07, lng: 72.87 });
+  check("start an SOS", st.status === 201 && !!st.data.id && st.data.link.includes("/s/") && st.data.contacts === 5 && st.data.reused === false, st.data);
+  await wait(400);
+  const sp = pushes.find(p => p.to === riyaTok && p.title.includes("SOS"));
+  check("people in circles get an urgent push with the live link", !!sp && sp.priority === "high" && sp.data.link === st.data.link && sp.data.screen === "sos", pushes);
+  check("one SOS push per person", pushes.filter(p => p.to === riyaTok && p.title.includes("SOS")).length === 1);
+  check("the chat message includes the live link", (await call("GET", `/circles/${family.id}/messages`, mom.token)).data.some((m: any) => (m.text ?? "").includes(st.data.link)));
+  const again = await call("POST", "/sos/start", t, {});
+  check("pressing SOS again resumes the same SOS (no second alert)", again.data.id === st.data.id && again.data.reused === true, again.data);
+  check("location updates are accepted", (await call("POST", `/sos/${st.data.id}/location`, t, { lat: 19.08, lng: 72.88 })).status === 200);
+  check("others can't update my SOS location", (await call("POST", `/sos/${st.data.id}/location`, mom.token, { lat: 1, lng: 1 })).status === 404);
+  check("a location must be valid", (await call("POST", `/sos/${st.data.id}/location`, t, { lat: 999, lng: 1 })).status === 400);
+
+  check("non-video uploads are refused", (await upClip(st.data.id, t, Buffer.from("this is just text, definitely not a video"))).status === 400);
+  const clip1 = await upClip(st.data.id, t, mp4);
+  check("upload a clip", clip1.status === 201 && String(clip1.data.url).endsWith(".mp4"), clip1);
+  check("audio clips are stored as m4a", String((await upClip(st.data.id, t, mp4, "audio")).data?.url).endsWith(".m4a"));
+  check("others can't upload to my SOS", (await upClip(st.data.id, mom.token, mp4)).status === 404);
+  check("the clip file can be downloaded", (await fetch(clip1.data.url)).status === 200);
+  await wait(300);
+  check("circle members are told about new clips live", sosClipEvents.some(e => e.sosId === st.data.id && e.userId === demo.user.id), sosClipEvents);
+  sMomS.disconnect();
+
+  const active = await call("GET", "/sos/active", mom.token);
+  check("circle members see the active SOS", active.data.others.some((e: any) => e.id === st.data.id && e.user.id === demo.user.id && e.clipCount === 2 && e.link === st.data.link), active.data);
+  check("my own running SOS is reported back to me", (await call("GET", "/sos/active", t)).data.mine?.id === st.data.id);
+  check("people outside the circles see nothing", (await call("GET", "/sos/active", outsider)).data.others.length === 0);
+
+  const sosToken = st.data.link.split("/s/")[1];
+  const pg = await fetch(`${base}/s/${sosToken}`);
+  const html = await pg.text();
+  check("contacts can open the link page without an account", pg.status === 200 && html.includes(demo.user.name) && html.includes("SOS"), pg.status);
+  check("the link page sends a strict script policy", /script-src 'nonce-/.test(pg.headers.get("content-security-policy") ?? ""));
+  const pd: any = await (await fetch(`${base}/s/${sosToken}/data`)).json();
+  check("page data has the location and clips", pd.active === true && pd.lat === 19.08 && pd.clips.length === 2 && pd.name === demo.user.name, pd);
+  check("page data doesn't leak private details", !JSON.stringify(pd).includes("@") && !("email" in pd) && !("phone" in pd), pd);
+  check("a wrong link shows an expired page", (await fetch(`${base}/s/not-a-real-token`)).status === 404 && (await fetch(`${base}/s/not-a-real-token/data`)).status === 404);
+
+  check("end the SOS", (await call("POST", `/sos/${st.data.id}/end`, t)).data.ended === true);
+  check("ending twice is harmless", (await call("POST", `/sos/${st.data.id}/end`, t)).data.already === true);
+  check("a clip arriving just after the end is still accepted", (await upClip(st.data.id, t, mp4)).status === 201);
+  check("the page shows the SOS as ended", ((await (await fetch(`${base}/s/${sosToken}/data`)).json()) as any).active === false);
+  check("an ended SOS no longer shows as active", (await call("GET", "/sos/active", mom.token)).data.others.length === 0);
+  check("location updates are refused after the end", (await call("POST", `/sos/${st.data.id}/location`, t, { lat: 1, lng: 1 })).status === 409);
+
+  // account deletion removes recordings too
+  const sx = Date.now();
+  const gx = await call("POST", "/auth/signup", undefined, { name: "Gone Soon", username: "gonesos" + sx, email: `gonesos${sx}@x.test`, password: "gonesos1234" });
+  const gst = await call("POST", "/sos/start", gx.data.token, {});
+  const gclip = await upClip(gst.data.id, gx.data.token, mp4);
+  check("a second user can run their own SOS", gst.status === 201 && gclip.status === 201, gst.data);
+  await call("POST", "/me/delete", gx.data.token, { confirm: "DELETE", password: "gonesos1234" });
+  check("deleting the account deletes their recordings", (await fetch(gclip.data.url)).status === 404);
+  check("and their SOS link stops working", (await fetch(`${base}/s/${gst.data.link.split("/s/")[1]}/data`)).status === 404);
+
+  // retention: recordings older than 30 days are deleted
+  await prisma.sosEvent.update({ where: { id: st.data.id }, data: { startedAt: new Date(Date.now() - 40 * 86400e3) } });
+  check("old SOS recordings are cleaned up", (await purgeOldSos()) >= 1);
+  check("the old recording file is gone", (await fetch(clip1.data.url)).status === 404);
+  check("the old link no longer works", (await fetch(`${base}/s/${sosToken}`)).status === 404);
+
+  // too many SOS alerts in one day is refused (protects contacts from SMS spam)
+  await prisma.sosEvent.createMany({ data: Array.from({ length: 10 }, (_, i) => ({ userId: demo.user.id, token: `limit-${sx}-${i}`, endedAt: new Date() })) });
+  check("a limit on SOS alerts per day", (await call("POST", "/sos/start", t, {})).status === 429);
+  await prisma.sosEvent.deleteMany({ where: { token: { startsWith: `limit-${sx}` } } });
 
   [sDemo, sMom, sOut, sDoc].forEach(s => s.disconnect());
   server.close(); pushServer.close();

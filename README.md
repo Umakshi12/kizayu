@@ -75,7 +75,8 @@ in a yellow "Dev mode" box. This never happens in production.
 | Doctor inbox | Any account can turn on a doctor profile; doctors reply to patients and view records patients have shared |
 | Chat | Group chat per circle, live over WebSocket, with photos |
 | Notifications | In-app inbox with unread badge; push notifications for chat, comments, SOS (urgent), arrived home and doctor replies |
-| Safety | OpenStreetMap map, time-limited location sharing, arrived-home alerts, SOS |
+| Safety | OpenStreetMap map, time-limited location sharing, arrived-home alerts |
+| SOS | 5-second cancel countdown, then urgent alerts to your circles and an SMS with a private link to up to 5 SOS contacts (no app needed). With recording turned on (opt-in, with a disclosure), the phone records video and audio in 15-second clips and uploads each one as it finishes, so contacts see near-live video, audio and a live map on the link page. Recordings are deleted after 30 days |
 | Family lists | Shared grocery, to-do and packing lists for a circle: everyone adds and ticks items, and changes appear live for the others |
 | Emergency card | Blood group, allergies, conditions and an emergency contact with one-tap call, visible to people in your circles |
 | Games | Ludo (2 to 4 players, family or computer), Word Hunt, Trivia, Memory Match, family leaderboards |
@@ -85,7 +86,7 @@ in a yellow "Dev mode" box. This never happens in production.
 ## Tests
 
 ```bash
-cd backend && npm test                     # 214 end-to-end checks against the real API, database and sockets
+cd backend && npm test                     # 261 end-to-end checks against the real API, database and sockets
 cd mobile && npm run test:games            # 16 checks of the Ludo and Word Hunt rules
 cd mobile && npx tsc --noEmit              # typecheck
 ```
@@ -103,6 +104,11 @@ Phones also get subtle haptic feedback on taps. All design tokens (colours, grad
 `mobile/src/theme.ts`, and the shared components live in `mobile/src/components/ui.tsx`. Change them there to
 restyle the whole app.
 
+### SOS limits worth knowing
+
+- Phones only let apps use the camera while they are open on screen, so Kizayu must stay open during an SOS (the screen is kept awake). True live streaming would need a paid video service; clips are near-live instead.
+- The camera and microphone need a new app build (not just an update). Google Play will ask you to explain camera and microphone use, and to list audio and video in the data safety form.
+
 ## Needs your accounts before it works for real
 
 All the code is in place. Each item below starts working when you add its keys to `backend/.env`; see
@@ -110,7 +116,7 @@ All the code is in place. Each item below starts working when you add its keys t
 
 | Feature | What to set up | Settings |
 |---|---|---|
-| SMS codes | Twilio account and phone number | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM` |
+| SMS (sign-in codes and SOS alerts) | Twilio account and phone number. Without it, SOS can't text contacts automatically: the SOS screen offers a "Text my contacts" button that opens the phone's own messages app instead | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM` |
 | Email codes | Any SMTP provider (SendGrid, Mailgun, Amazon SES and so on) | `SMTP_URL`, `MAIL_FROM` |
 | Google sign-in | OAuth client IDs from Google Cloud Console | Backend: `GOOGLE_CLIENT_IDS`. App: `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, `_ANDROID_`, `_IOS_` |
 | Push notifications | An Expo account: run `npx eas-cli init` in `mobile/`, then make a development build | Optional `EXPO_ACCESS_TOKEN` |

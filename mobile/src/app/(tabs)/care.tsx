@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { get, mediaUrl, patch } from "../../api";
 import { useAuth } from "../../auth";
 import { haptic } from "../../haptics";
+import { SosBanner } from "../../components/SosBanner";
 import { Text } from "../../components/Text";
 import { Avatar, Card, Empty, ErrorView, GradientCard, Header, IconName, IconTile, Loading, Pill, Screen, SectionHeader, timeAgo } from "../../components/ui";
 import { colors, gradients, radius, statusColor } from "../../theme";
@@ -63,6 +64,8 @@ export default function Care() {
             </ScrollView>
           )}
 
+          <SosBanner />
+
           <GradientCard colors={allGood ? gradients.hero : gradients.danger}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
               <View style={{ width: 52, height: 52, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" }}>
@@ -74,6 +77,18 @@ export default function Care() {
               </View>
             </View>
           </GradientCard>
+
+          <Pressable onPress={() => { haptic.warning(); router.push("/sos"); }} accessibilityRole="button" accessibilityLabel="Emergency SOS"
+            style={({ pressed }) => ({ marginTop: 14, flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: radius.lg, backgroundColor: colors.dangerSoft, borderWidth: 1.5, borderColor: colors.danger, opacity: pressed ? 0.85 : 1 })}>
+            <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.danger, alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="alert" size={26} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: "800", fontSize: 16, color: colors.danger }}>Emergency SOS</Text>
+              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>Alert family, share live location, video and audio</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.danger} />
+          </Pressable>
 
           <SectionHeader title="Members" action={others.length ? undefined : "Invite"} onAction={() => router.push("/circles")} />
           <Card style={{ paddingVertical: 14 }}>

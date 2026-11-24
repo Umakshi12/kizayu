@@ -17,7 +17,7 @@ function distanceM(aLat: number, aLng: number, bLat: number, bLng: number) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-const settingsOut = (s: { homeAlerts: boolean; sosAlert: boolean; shareJourney: boolean; homeLat: number | null; homeLng: number | null }) => s;
+const settingsOut = (s: { homeAlerts: boolean; sosAlert: boolean; shareJourney: boolean; sosRecording: boolean; homeLat: number | null; homeLng: number | null }) => s;
 
 safetyRouter.get("/safety", wrap(async (req, res) => {
   const s = await prisma.safetySetting.upsert({ where: { userId: req.userId }, update: {}, create: { userId: req.userId } });
@@ -26,7 +26,7 @@ safetyRouter.get("/safety", wrap(async (req, res) => {
 
 safetyRouter.put("/safety", wrap(async (req, res) => {
   const b = parse(z.object({
-    homeAlerts: z.boolean().optional(), sosAlert: z.boolean().optional(), shareJourney: z.boolean().optional(),
+    homeAlerts: z.boolean().optional(), sosAlert: z.boolean().optional(), shareJourney: z.boolean().optional(), sosRecording: z.boolean().optional(),
     homeLat: z.number().min(-90).max(90).nullable().optional(), homeLng: z.number().min(-180).max(180).nullable().optional(),
   }), req.body);
   const s = await prisma.safetySetting.upsert({ where: { userId: req.userId }, update: b, create: { userId: req.userId, ...b } });

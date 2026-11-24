@@ -12,6 +12,7 @@ const PRIVACY: [string, string][] = [
   ["Health information", "Health data is visible only as described above. You can edit or delete it at any time."],
   ["Location", "Location is collected only while you are sharing it, sharing stops automatically after the time you choose, and you can stop it at any time. We use it to show you on your circle's map and for arrived-home alerts."],
   ["Deleting your data", `You can delete your account at any time in the app (Profile → Account & Security → Delete account). This permanently removes your account, posts, photos, messages, health data and location. You can also email ${CONTACT_EMAIL}.`],
+  ["Emergency (SOS) recording", "If you turn on SOS recording and trigger an SOS, the app records short video and audio clips and shares them, with your location, through a private link that is sent to the emergency contacts you chose and shown to people in your circles. Recording only happens during an SOS you start, while the app is open, with a visible on-screen indicator. Clips are deleted automatically after 30 days, or when you delete your account."],
   ["Security", "Data is sent over encrypted connections, passwords and one-time codes are stored hashed, and access is limited to what each feature needs."],
   ["Children", `${APP_NAME} is not intended for children under 13 (or the minimum age in your country) without a parent or guardian.`],
   ["Contact", `Questions about privacy: ${CONTACT_EMAIL}.`],

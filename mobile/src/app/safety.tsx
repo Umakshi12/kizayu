@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Switch, View } from "react-native";
 import { Text } from "../components/Text";
 import { showAlert, showError } from "../alert";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import * as Location from "expo-location";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { get, post, put } from "../api";
@@ -10,7 +11,7 @@ import { useAuth } from "../auth";
 import { OsmMap, MapPin } from "../components/OsmMap";
 import { Button, Card, ErrorView, Header, IconName, Loading, Screen, SectionHeader, Pill } from "../components/ui";
 import { colors, radius } from "../theme";
-import type { Circle, SafetySettings, SharedLocation } from "../types";
+import type { Circle, SafetySettings, SharedLocation, SosContact } from "../types";
 
 const SHARE_HOURS = [1, 4, 12];
 
@@ -23,6 +24,7 @@ export default function Safety() {
   const circle = circles.data?.find(c => c.id === circleId);
 
   const settings = useQuery({ queryKey: ["safety"], queryFn: () => get<SafetySettings>("/safety") });
+  const sosContacts = useQuery({ queryKey: ["sos-contacts"], queryFn: () => get<SosContact[]>("/sos/contacts") });
   const shared = useQuery({
     queryKey: ["locations", circleId], enabled: !!circleId, refetchInterval: 15_000,
     queryFn: () => get<SharedLocation[]>(`/location/circle/${circleId}`),
@@ -68,15 +70,6 @@ export default function Safety() {
     const pos = me ?? await locate();
     if (pos) update.mutate({ homeLat: pos.lat, homeLng: pos.lng });
   };
-  const sos = useMutation({
-    mutationFn: async () => post<{ notifiedCircles: number }>("/safety/sos", me ?? undefined),
-    onSuccess: r => showAlert("SOS sent", `Your ${r.notifiedCircles} circle${r.notifiedCircles === 1 ? "" : "s"} have been alerted.`),
-    onError: e => showAlert("SOS failed", e instanceof Error ? e.message : "Try again"),
-  });
-  const confirmSos = () => showAlert("Send SOS alert?", "This notifies everyone in your circles with your location.", [
-    { text: "Cancel", style: "cancel" }, { text: "Send SOS", style: "destructive", onPress: () => sos.mutate() },
-  ]);
-
   const pins = useMemo<MapPin[]>(() => {
     const out: MapPin[] = (shared.data ?? []).map(s => ({
       id: s.user.id, lat: s.lat, lng: s.lng, initial: s.user.name.slice(0, 1).toUpperCase(),
@@ -145,7 +138,17 @@ export default function Safety() {
             ))}
           </Card>
           <Button title={s?.homeLat != null ? "Update home to my current location" : "Set my current location as home"} variant="soft" icon="home" onPress={setHome} style={{ marginTop: 12 }} />
-          <Button title="Send SOS" variant="danger" icon="alert-circle" onPress={confirmSos} loading={sos.isPending} disabled={s?.sosAlert === false} style={{ marginTop: 12 }} />
+          <Card onPress={() => router.push("/sos-contacts")} style={{ marginTop: 12, flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Ionicons name="people-circle" size={30} color={colors.danger} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: "700", fontSize: 16 }}>SOS contacts &amp; recording</Text>
+              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
+                {(sosContacts.data?.length ?? 0) === 0 ? "Add family numbers to alert in an emergency" : `${sosContacts.data!.length} contact${sosContacts.data!.length === 1 ? "" : "s"} · video recording ${s?.sosRecording ? "on" : "off"}`}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.faint} />
+          </Card>
+          <Button title="Send SOS" variant="danger" icon="alert-circle" onPress={() => router.push("/sos")} disabled={s?.sosAlert === false} style={{ marginTop: 12 }} />
         </ScrollView>
       )}
     </Screen>
