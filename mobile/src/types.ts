@@ -77,3 +77,14 @@ export interface SosContact { id: string; name: string; relation: string; phone:
 export interface SosEventInfo { id: string; link: string; startedAt: string; endedAt: string | null; lat: number | null; lng: number | null }
 export interface SosStartResult extends SosEventInfo { reused: boolean; contacts: number; smsSent: number; smsConfigured?: boolean; notifiedPeople: number }
 export interface SosActive { mine: SosEventInfo | null; others: (SosEventInfo & { user: PublicUser; clipCount: number })[] }
+
+// ---- fitness
+export interface Workout {
+  id: string; userId: string; kind: "walk" | "run" | "cycle"; title: string | null; note: string | null; startedAt: string;
+  durationSec: number; distanceM: number; calories: number; steps: number | null; shared: boolean;
+}
+export interface FeedWorkout extends Workout { user: PublicUser }
+export interface WorkoutDetail extends FeedWorkout { route: [number, number][] }
+export interface FitnessTotals { count: number; distanceM: number; durationSec: number; calories: number; steps: number }
+export interface FitnessSummary { week: FitnessTotals; today: FitnessTotals; days: { date: string; distanceM: number }[] }
+export interface LeaderRow { user: PublicUser; count: number; distanceM: number; durationSec: number; steps: number }

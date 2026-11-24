@@ -51,6 +51,9 @@ function Navigator({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="lists" />
           <Stack.Screen name="sos" options={{ animation: "fade", gestureEnabled: false }} />
           <Stack.Screen name="sos-contacts" />
+          <Stack.Screen name="fitness" />
+          <Stack.Screen name="workout" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="activity/[id]" />
           <Stack.Screen name="emergency" />
           <Stack.Screen name="circles" />
           <Stack.Screen name="notifications" />

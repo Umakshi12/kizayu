@@ -11,13 +11,16 @@ display:flex;align-items:center;justify-content:center;border:3px solid #fff;box
 <body><div id="map"></div><script>
 var map=L.map('map',{zoomControl:false}).setView([20.59,78.96],4);
 L.tileLayer('${TILE_URL}',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
-var markers=[];
-function setPins(pins){markers.forEach(function(m){map.removeLayer(m)});markers=[];
+var markers=[],routeLine=null;
+function setPins(pins,route){markers.forEach(function(m){map.removeLayer(m)});markers=[];
+ if(routeLine){map.removeLayer(routeLine);routeLine=null}
+ if(route&&route.length>1){routeLine=L.polyline(route,{color:'#00B8E6',weight:5,opacity:.95,lineCap:'round',lineJoin:'round'}).addTo(map)}
  pins.forEach(function(p){var ic=L.divIcon({className:'',html:'<div class="pin '+(p.me?'me':'')+'">'+p.initial+'</div>',iconSize:[34,34],iconAnchor:[17,17]});
   markers.push(L.marker([p.lat,p.lng],{icon:ic}).addTo(map).bindPopup(p.label))});
- if(pins.length===1)map.setView([pins[0].lat,pins[0].lng],16);
- else if(pins.length>1)map.fitBounds(pins.map(function(p){return[p.lat,p.lng]}),{padding:[50,50],maxZoom:16});}
-function handle(e){try{var d=JSON.parse(e.data);if(d.type==='pins')setPins(d.pins)}catch(x){}}
+ var pts=pins.map(function(p){return[p.lat,p.lng]}).concat(route||[]);
+ if(pts.length===1)map.setView(pts[0],16);
+ else if(pts.length>1)map.fitBounds(pts,{padding:[40,40],maxZoom:17});}
+function handle(e){try{var d=JSON.parse(e.data);if(d.type==='pins')setPins(d.pins,d.route)}catch(x){}}
 document.addEventListener('message',handle);window.addEventListener('message',handle);
 var hello=JSON.stringify({type:'ready'});
 if(window.ReactNativeWebView){window.ReactNativeWebView.postMessage(hello)}else if(window.parent){window.parent.postMessage(hello,'*')}

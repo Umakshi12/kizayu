@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { get, post, put } from "../api";
 import { useAuth } from "../auth";
 import { OsmMap, MapPin } from "../components/OsmMap";
-import { Button, Card, ErrorView, Header, IconName, Loading, Screen, SectionHeader, Pill } from "../components/ui";
+import { Avatar, Button, Card, Chip, ErrorView, Header, IconName, Loading, Screen, SectionHeader, Pill, timeAgo } from "../components/ui";
 import { colors, radius } from "../theme";
 import type { Circle, SafetySettings, SharedLocation, SosContact } from "../types";
 
@@ -123,6 +123,31 @@ export default function Safety() {
               </View>
             )}
           </Card>
+
+          {(shared.data ?? []).some(x => x.user.id !== user?.id) && (
+            <>
+              <SectionHeader title="Who's sharing" />
+              <Card style={{ paddingVertical: 4 }}>
+                {(shared.data ?? []).filter(x => x.user.id !== user?.id).map((x, i) => {
+                  const mins = Math.max(0, (Date.now() - new Date(x.updatedAt).getTime()) / 60000);
+                  const stale = mins > 30;
+                  return (
+                    <View key={x.user.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
+                      <Avatar uri={x.user.avatarUrl} name={x.user.name} size={42} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontWeight: "700" }}>{x.user.name}</Text>
+                        <Text style={{ color: colors.muted, fontSize: 12, marginTop: 1 }}>{x.label ? `${x.label} · ` : ""}{stale ? "Last seen" : "Updated"} {timeAgo(x.updatedAt)}</Text>
+                      </View>
+                      <Chip label={stale ? "May be offline" : "Live"} tone={stale ? "amber" : "success"} small />
+                    </View>
+                  );
+                })}
+              </Card>
+              <Text style={{ color: colors.faint, fontSize: 12, marginTop: 8, marginLeft: 4, lineHeight: 17 }}>
+                A phone that's switched off or has no signal can't report its position. You'll see the last place it was, and when.
+              </Text>
+            </>
+          )}
 
           <SectionHeader title="Safety Features" />
           <Card style={{ paddingVertical: 4 }}>

@@ -50,6 +50,7 @@ model User {
   emergency     EmergencyInfo?
   sosContacts   SosContact[]
   sosEvents     SosEvent[]
+  activities    Activity[]
   blocking      Block[]        @relation("Blocker")
   blockedBy     Block[]        @relation("Blocked")
 }
@@ -442,4 +443,24 @@ model SosClip {
   createdAt DateTime @default(now())
   event     SosEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
   @@index([eventId])
+}
+
+// A recorded workout (walk, run or cycle) with its GPS route. Calories and steps are estimated on the server.
+model Activity {
+  id          String   @id @default(cuid())
+  userId      String
+  kind        String   // walk | run | cycle
+  title       String?
+  note        String?
+  startedAt   DateTime
+  durationSec Int
+  distanceM   Int
+  calories    Int
+  steps       Int?     // estimated from distance (walk and run only)
+  route       Json     // [[lat, lng], ...] simplified, at most 600 points
+  shared      Boolean  @default(true) // shown to people in your circles and counted on the leaderboard
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, startedAt])
+  @@index([startedAt])
 }

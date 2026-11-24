@@ -75,7 +75,8 @@ in a yellow "Dev mode" box. This never happens in production.
 | Doctor inbox | Any account can turn on a doctor profile; doctors reply to patients and view records patients have shared |
 | Chat | Group chat per circle, live over WebSocket, with photos |
 | Notifications | In-app inbox with unread badge; push notifications for chat, comments, SOS (urgent), arrived home and doctor replies |
-| Safety | OpenStreetMap map, time-limited location sharing, arrived-home alerts |
+| Safety | OpenStreetMap map, time-limited location sharing, arrived-home alerts, and a "Who's sharing" list with last-seen times (a phone that is off or offline can't report, so you see where it last was and when) |
+| Fitness | Strava-style workouts: record a walk, run or ride with a live route map, distance, time and pace. Calories and steps are estimated on the server, and impossible speeds are rejected to keep the family leaderboard fair. Weekly totals with a 7-day chart, a family leaderboard (last 7 days, shared workouts only), a feed of recent workouts, and a route map for each one. Tracking works while the app is open on screen |
 | SOS | 5-second cancel countdown, then urgent alerts to your circles and an SMS with a private link to up to 5 SOS contacts (no app needed). With recording turned on (opt-in, with a disclosure), the phone records video and audio in 15-second clips and uploads each one as it finishes, so contacts see near-live video, audio and a live map on the link page. Recordings are deleted after 30 days |
 | Family lists | Shared grocery, to-do and packing lists for a circle: everyone adds and ticks items, and changes appear live for the others |
 | Emergency card | A medical ID: blood group, allergies and conditions as chips, notes for a helper, and up to 5 emergency contacts with a one-tap Call button. Family cards expand to show the same. Visible to people in your circles. The contacts are the same list that gets texted during an SOS |
@@ -86,7 +87,7 @@ in a yellow "Dev mode" box. This never happens in production.
 ## Tests
 
 ```bash
-cd backend && npm test                     # 268 end-to-end checks against the real API, database and sockets
+cd backend && npm test                     # 299 end-to-end checks against the real API, database and sockets
 cd mobile && npm run test:games            # 16 checks of the Ludo and Word Hunt rules
 cd mobile && npx tsc --noEmit              # typecheck
 ```
@@ -103,6 +104,11 @@ shadows, gradient story rings, a floating tab bar with a glowing camera button, 
 Phones also get subtle haptic feedback on taps. All design tokens (colours, gradients, radii, type sizes) live in
 `mobile/src/theme.ts`, and the shared components live in `mobile/src/components/ui.tsx`. Change them there to
 restyle the whole app.
+
+### Fitness limits worth knowing
+
+- Workouts are tracked with the phone's GPS while Kizayu is open on screen (the screen is kept awake). Tracking in the background would need extra Google Play approval.
+- All-day step counting (like a pedometer) isn't included. Phones only hand that data to apps through Health Connect (Android) or Apple Health, which needs a separate native setup and a health-data declaration on Google Play. Steps shown for walks and runs are estimated from distance.
 
 ### SOS limits worth knowing
 

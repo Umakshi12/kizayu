@@ -637,6 +637,64 @@ async function main() {
   check("a limit on SOS alerts per day", (await call("POST", "/sos/start", t, {})).status === 429);
   await prisma.sosEvent.deleteMany({ where: { token: { startsWith: `limit-${sx}` } } });
 
+  // =================================================================== workouts: walk / run / cycle
+  section = "fitness";
+  const wroute = (n = 20) => Array.from({ length: n }, (_, i) => [19.07 + i * 0.0004, 72.87 + i * 0.0004]);
+  const minsAgo = (m: number) => new Date(Date.now() - m * 60000).toISOString();
+  const wk = (over: Record<string, unknown> = {}) => ({ kind: "walk", startedAt: minsAgo(3), durationSec: 1800, distanceM: 2500, route: wroute(), ...over });
+
+  check("workout needs a valid kind", (await call("POST", "/activities", t, wk({ kind: "swim" }))).status === 400);
+  check("a too-short workout is refused", (await call("POST", "/activities", t, wk({ durationSec: 10 }))).status === 400);
+  check("a workout with almost no distance is refused", (await call("POST", "/activities", t, wk({ distanceM: 10 }))).status === 400);
+  check("a workout in the future is refused", (await call("POST", "/activities", t, wk({ startedAt: new Date(Date.now() + 3600e3).toISOString() }))).status === 400);
+  check("a workout from 3 days ago is refused", (await call("POST", "/activities", t, wk({ startedAt: minsAgo(3 * 24 * 60) }))).status === 400);
+  const fast = await call("POST", "/activities", t, wk({ durationSec: 600, distanceM: 8000 }));
+  check("an impossibly fast walk is refused with a reason", fast.status === 400 && /too fast/i.test(fast.data.error), fast.data);
+  check("a route needs at least two points", (await call("POST", "/activities", t, wk({ route: [[19.07, 72.87]] }))).status === 400);
+  check("route coordinates must be real", (await call("POST", "/activities", t, wk({ route: [[999, 72.87], [19.07, 72.87]] }))).status === 400);
+
+  const w1 = await call("POST", "/activities", t, wk({ startedAt: minsAgo(3), title: "Morning walk" }));
+  check("save a walk: calories and steps are estimated on the server", w1.status === 201 && w1.data.calories === 123 && w1.data.steps === 3333 && w1.data.title === "Morning walk", w1.data);
+  const w2 = await call("POST", "/activities", t, wk({ kind: "run", startedAt: minsAgo(2), durationSec: 1500, distanceM: 5000 }));
+  check("save a run", w2.status === 201 && w2.data.calories === 286 && w2.data.steps === 4762, w2.data);
+  const w3 = await call("POST", "/activities", t, wk({ kind: "cycle", startedAt: minsAgo(1), durationSec: 1800, distanceM: 10000 }));
+  check("a ride has no step estimate", w3.status === 201 && w3.data.steps === null && w3.data.calories === 263, w3.data);
+  const momShared = await call("POST", "/activities", mom.token, wk({ distanceM: 3000 }));
+  const momPrivate = await call("POST", "/activities", mom.token, wk({ distanceM: 4000, shared: false, startedAt: minsAgo(2) }));
+  check("a workout can be kept private", momShared.status === 201 && momPrivate.status === 201 && momPrivate.data.shared === false);
+
+  const wfeed = (await call("GET", "/activities/feed", t)).data as any[];
+  check("the wfeed shows my workouts and my circles' shared ones, newest first", wfeed.some(a => a.id === momShared.data.id && a.user.id === mom.user.id) && wfeed.slice(0, 3).filter(a => a.userId === demo.user.id).length >= 2 && wfeed[0].startedAt >= wfeed[wfeed.length - 1].startedAt, wfeed.map(a => a.id));
+  check("private workouts stay out of other people's wfeed", !wfeed.some(a => a.id === momPrivate.data.id));
+  check("the wfeed list doesn't carry the heavy route data", !("route" in wfeed[0]));
+  check("people outside the circles see none of it", !((await call("GET", "/activities/feed", outsider)).data as any[]).some(a => a.userId === demo.user.id || a.userId === mom.user.id));
+  check("a workout appears on the family pulse", (await call("GET", `/pulse/${family.id}`, mom.token)).data.events.some((e: any) => /2\.5 km walk/.test(e.text)));
+
+  const det = await call("GET", `/activities/${w1.data.id}`, t);
+  check("workout detail includes the route", det.status === 200 && det.data.route.length === 20 && det.data.user.id === demo.user.id, det.status);
+  check("a circle member can open a shared workout", (await call("GET", `/activities/${w1.data.id}`, mom.token)).status === 200);
+  check("a private workout is hidden from others", (await call("GET", `/activities/${momPrivate.data.id}`, t)).status === 404);
+  check("people outside the circles can't open a workout", (await call("GET", `/activities/${w1.data.id}`, outsider)).status === 404);
+
+  const board = await call("GET", `/activities/leaderboard?circleId=${family.id}`, t);
+  const order = (board.data as any[]).map(r => r.user.id);
+  check("the leaderboard ranks by distance", board.status === 200 && order[0] === demo.user.id && board.data[0].distanceM === 17500 && board.data[0].count === 3, board.data.slice(0, 2));
+  check("private workouts aren't counted on the leaderboard", board.data.find((r: any) => r.user.id === mom.user.id).distanceM === 3000);
+  check("members without workouts are still listed", board.data.some((r: any) => r.distanceM === 0));
+  check("only circle members can see a leaderboard", (await call("GET", `/activities/leaderboard?circleId=${family.id}`, outsider)).status === 403);
+
+  const sum = await call("GET", "/activities/summary?tz=0", t);
+  check("my weekly summary adds everything up", sum.data.week.count === 3 && sum.data.week.distanceM === 17500 && sum.data.week.steps === 3333 + 4762 && sum.data.week.calories === 123 + 286 + 263, sum.data.week);
+  check("the summary has 7 days and today's total", sum.data.days.length === 7 && sum.data.days[6].distanceM === sum.data.today.distanceM && sum.data.today.count === 3, sum.data.days);
+
+  await call("POST", "/blocks", t, { userId: mom.user.id });
+  check("blocking someone hides their workouts", !((await call("GET", "/activities/feed", t)).data as any[]).some(a => a.userId === mom.user.id) && (await call("GET", `/activities/${momShared.data.id}`, t)).status === 404);
+  await call("DELETE", `/blocks/${mom.user.id}`, t);
+
+  check("someone else can't delete my workout", (await call("DELETE", `/activities/${w3.data.id}`, mom.token)).status === 404);
+  check("delete my workout", (await call("DELETE", `/activities/${w3.data.id}`, t)).status === 204);
+  check("a deleted workout is gone", (await call("GET", `/activities/${w3.data.id}`, t)).status === 404);
+
   [sDemo, sMom, sOut, sDoc].forEach(s => s.disconnect());
   server.close(); pushServer.close();
   await prisma.$disconnect();

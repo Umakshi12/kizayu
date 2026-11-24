@@ -8,17 +8,17 @@ export interface MapPin { id: string; lat: number; lng: number; label: string; i
 
 // OpenStreetMap tiles rendered with Leaflet inside a WebView: no API key and identical on iOS/Android.
 // (OsmMap.web.tsx is used instead in the browser preview.)
-export function OsmMap({ pins }: { pins: MapPin[] }) {
+export function OsmMap({ pins, route, height = 260 }: { pins: MapPin[]; route?: [number, number][]; height?: number }) {
   // react-native-webview 14 types its default generic as `undefined`, which collapses props to `never`; pass `object`.
   const ref = useRef<WebView<object>>(null);
   const ready = useRef(false);
-  const payload = useMemo(() => JSON.stringify({ type: "pins", pins }), [pins]);
+  const payload = useMemo(() => JSON.stringify({ type: "pins", pins, route }), [pins, route]);
 
   const push = () => ref.current?.injectJavaScript(`handle({data:${JSON.stringify(payload)}});true;`);
   useEffect(() => { if (ready.current) push(); }, [payload]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <View style={{ height: 260, borderRadius: radius.lg, overflow: "hidden", backgroundColor: colors.border }}>
+    <View style={{ height, borderRadius: radius.lg, overflow: "hidden", backgroundColor: colors.border }}>
       <WebView<object>
         ref={ref} originWhitelist={["*"]} source={{ html: MAP_HTML }} javaScriptEnabled style={{ flex: 1 }}
         onMessage={e => { if (e.nativeEvent.data.includes("ready")) { ready.current = true; push(); } }}

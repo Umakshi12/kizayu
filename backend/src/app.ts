@@ -23,6 +23,7 @@ import { legalRouter } from "./routes/legal";
 import { listsRouter } from "./routes/lists";
 import { emergencyRouter } from "./routes/emergency";
 import { sosPublicRouter, sosRouter } from "./routes/sos";
+import { activitiesRouter } from "./routes/activities";
 import { UPLOAD_DIR } from "./services/storage";
 
 export function createApp() {
@@ -53,7 +54,7 @@ export function createApp() {
 
   app.use(requireAuth);
   app.use(circlesRouter, socialRouter, dayRouter, healthRouter, doctorsRouter, gamesRouter, chatRouter, safetyRouter,
-    notificationsRouter, premiumRouter, supportRouter, moderationRouter, listsRouter, emergencyRouter, sosRouter);
+    notificationsRouter, premiumRouter, supportRouter, moderationRouter, listsRouter, emergencyRouter, sosRouter, activitiesRouter);
 
   app.use((_req, res) => res.status(404).json({ error: "Not found" }));
   app.use(errorHandler);
