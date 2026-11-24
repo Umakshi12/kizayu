@@ -1,4 +1,5 @@
 import { Platform, Pressable, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Tabs } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,6 +14,9 @@ const icon = (active: string, inactive: string) =>
   );
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  const bottom = Math.max(insets.bottom, Platform.OS === "ios" ? 20 : 8); // room for the phone's navigation bar / home indicator
+  const barHeight = 64 + bottom;
   return (
     <Tabs
       screenListeners={{ tabPress: () => haptic.select() }}
@@ -22,12 +26,12 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.faint,
         tabBarLabelStyle: { fontSize: 11, fontFamily: fonts.semibold, marginTop: 2 },
         tabBarStyle: {
-          height: Platform.OS === "ios" ? 88 : 72, paddingTop: 8, paddingBottom: Platform.OS === "ios" ? 26 : 10,
+          height: barHeight, paddingTop: 8, paddingBottom: bottom,
           backgroundColor: "#fff", borderTopWidth: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28,
           shadowColor: "#0B2533", shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: -6 }, elevation: 16,
           position: "absolute",
         },
-        sceneStyle: { backgroundColor: colors.bg, paddingBottom: Platform.OS === "ios" ? 88 : 72 },
+        sceneStyle: { backgroundColor: colors.bg, paddingBottom: barHeight },
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Home", tabBarIcon: icon("home", "home-outline") }} />

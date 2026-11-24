@@ -41,7 +41,7 @@ export default function PostComments() {
   return (
     <Screen>
       <Header title="Comments" back />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === "web" ? undefined : "padding"} style={{ flex: 1 }}>
         {q.isLoading ? <Loading /> : q.error ? <ErrorView error={q.error} onRetry={() => q.refetch()} /> : (
           <FlatList
             data={q.data} keyExtractor={c => c.id} contentContainerStyle={{ padding: 16, gap: 14 }}

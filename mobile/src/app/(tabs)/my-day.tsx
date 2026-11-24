@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { parseClock } from "../../reminders";
 import { Modal, Pressable, ScrollView, View, StyleSheet } from "react-native";
 import { Text } from "../../components/Text";
 import { showAlert } from "../../alert";
@@ -67,7 +68,7 @@ function AddTaskModal({ visible, onClose }: { visible: boolean; onClose: () => v
           <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 14 }}>New task</Text>
           <Field label="What do you need to do?" value={title} onChangeText={setTitle} autoCapitalize="sentences" placeholder="Take vitamins" />
           <View style={{ flexDirection: "row", gap: 12 }}>
-            <View style={{ flex: 1 }}><Field label="Time (optional)" value={time} onChangeText={setTime} placeholder="8:00 PM" /></View>
+            <View style={{ flex: 1 }}><Field label="Time (optional)" value={time} onChangeText={setTime} placeholder="8:00 PM" hint={time ? (parseClock(time) ? "We'll remind you daily at this time" : "Use a time like 8:00 PM to get a reminder") : undefined} /></View>
             <View style={{ width: 110 }}><Field label="Times a day" value={count} onChangeText={setCount} keyboardType="number-pad" /></View>
           </View>
           <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
@@ -166,7 +167,7 @@ export default function MyDay() {
   const pct = total ? finished / total : 0;
 
   return (
-    <Screen>
+    <Screen tab>
       <Header title="My Day" subtitle={new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
         right={<IconButton icon="add" label="Add task" tint={colors.primary} onPress={() => setAdding(true)} />} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}>

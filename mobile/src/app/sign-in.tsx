@@ -94,7 +94,7 @@ export default function SignIn() {
 
   return (
     <Screen>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === "web" ? undefined : "padding"} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 20, flexGrow: 1, justifyContent: "center", maxWidth: 480, width: "100%", alignSelf: "center" }} keyboardShouldPersistTaps="handled">
           <GradientCard style={{ alignItems: "center", paddingVertical: 30, marginBottom: -28, paddingBottom: 54 }}>
             <Logo size={96} />

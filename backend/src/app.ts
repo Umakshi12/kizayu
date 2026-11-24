@@ -20,6 +20,8 @@ import { premiumRouter } from "./routes/premium";
 import { supportRouter } from "./routes/support";
 import { moderationRouter } from "./routes/moderation";
 import { legalRouter } from "./routes/legal";
+import { listsRouter } from "./routes/lists";
+import { emergencyRouter } from "./routes/emergency";
 import { UPLOAD_DIR } from "./services/storage";
 
 export function createApp() {
@@ -49,7 +51,7 @@ export function createApp() {
 
   app.use(requireAuth);
   app.use(circlesRouter, socialRouter, dayRouter, healthRouter, doctorsRouter, gamesRouter, chatRouter, safetyRouter,
-    notificationsRouter, premiumRouter, supportRouter, moderationRouter);
+    notificationsRouter, premiumRouter, supportRouter, moderationRouter, listsRouter, emergencyRouter);
 
   app.use((_req, res) => res.status(404).json({ error: "Not found" }));
   app.use(errorHandler);

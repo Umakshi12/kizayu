@@ -29,7 +29,7 @@ healthRouter.get("/health/:userId", wrap(async (req, res) => {
   res.json({
     user,
     vitals: vitals.filter(Boolean),
-    medications: meds.map(m => ({ id: m.id, name: m.name, schedule: m.schedule, taken: m.takenDate === today() })),
+    medications: meds.map(m => ({ id: m.id, name: m.name, schedule: m.schedule, remindAt: m.remindAt, taken: m.takenDate === today() })),
     nextAppointment: next,
   });
 }));
@@ -53,7 +53,7 @@ healthRouter.post("/health/vitals", wrap(async (req, res) => {
 }));
 
 healthRouter.post("/health/medications", wrap(async (req, res) => {
-  const b = parse(z.object({ name: z.string().min(1), schedule: z.string().min(1) }), req.body);
+  const b = parse(z.object({ name: z.string().min(1), schedule: z.string().min(1), remindAt: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/, "Time must look like 08:30").optional() }), req.body);
   const m = await prisma.medication.create({ data: { ...b, userId: req.userId } });
   res.status(201).json(m);
 }));

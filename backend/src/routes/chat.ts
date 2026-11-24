@@ -12,6 +12,8 @@ export const chatRouter = Router();
 let io: Server | null = null;
 export const setIo = (server: Server) => { io = server; };
 export const roomOf = (circleId: string) => `circle:${circleId}`;
+/** Push a realtime event to everyone currently connected in a circle (chat, shared lists). */
+export const emitToCircle = (circleId: string, event: string, payload: unknown) => { io?.to(roomOf(circleId)).emit(event, payload); };
 
 const include = { user: { select: publicUser }, circle: { select: { name: true } } } as const;
 

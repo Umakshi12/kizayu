@@ -29,7 +29,7 @@ export interface PulseEvent { id: string; kind: string; text: string; imageUrl: 
 export interface Pulse { members: PublicUser[]; events: PulseEvent[]; summary: "all_good" | "needs_attention" }
 
 export interface Vital { id: string; type: "heart_rate" | "bp" | "spo2"; value: string; unit: string; recordedAt: string }
-export interface Medication { id: string; name: string; schedule: string; taken: boolean }
+export interface Medication { id: string; name: string; schedule: string; remindAt?: string | null; taken: boolean }
 export interface HealthOverview {
   user: { id: string; name: string; age: number | null; gender: string | null; avatarUrl: string | null };
   vitals: Vital[]; medications: Medication[]; nextAppointment: Appointment | null;
@@ -65,3 +65,9 @@ export interface PatientHealth {
   user: { id: string; name: string; age: number | null; gender: string | null; avatarUrl: string | null };
   vitals: Vital[]; medications: Medication[]; records: HealthRecord[];
 }
+
+// ---- shared lists + emergency card
+export interface ListItem { id: string; text: string; done: boolean; addedById: string | null; doneById: string | null; createdAt: string }
+export interface SharedList { id: string; circleId: string; title: string; icon: string; createdById: string | null; createdAt: string; items: ListItem[] }
+export interface EmergencyInfo { bloodGroup: string; allergies: string; conditions: string; contactName: string; contactPhone: string; notes: string; updatedAt: string | null }
+export interface FamilyEmergency { user: PublicUser; info: EmergencyInfo }

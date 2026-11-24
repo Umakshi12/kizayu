@@ -18,7 +18,7 @@ export function MessageThread({ messages, meId, onSend, sending, header, emptyTe
   const submit = async () => { const t = text.trim(); if (!t) return; setText(""); await onSend(t); };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+    <KeyboardAvoidingView behavior={Platform.OS === "web" ? undefined : "padding"} style={{ flex: 1 }}>
       <FlatList
         ref={list} data={messages} keyExtractor={m => m.id} contentContainerStyle={{ padding: 16, gap: 10, flexGrow: 1 }}
         ListHeaderComponent={header ? <View style={{ marginBottom: 6 }}>{header}</View> : undefined}

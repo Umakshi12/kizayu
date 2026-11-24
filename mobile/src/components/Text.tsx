@@ -18,9 +18,9 @@ function withFont(style: unknown, base: TextStyle): TextStyle {
 }
 
 export function Text({ style, ...props }: ComponentProps<typeof RNText>) {
-  return <RNText {...props} style={withFont(style, { color: colors.text, fontSize: 15 })} />;
+  return <RNText maxFontSizeMultiplier={1.25} {...props} style={withFont(style, { color: colors.text, fontSize: 15 })} />;
 }
 
 export function TextInput({ style, ...props }: ComponentProps<typeof RNTextInput>) {
-  return <RNTextInput placeholderTextColor={colors.faint} {...props} style={withFont(style, { color: colors.text, fontSize: 16 })} />;
+  return <RNTextInput placeholderTextColor={colors.faint} maxFontSizeMultiplier={1.25} {...props} style={withFont(style, { color: colors.text, fontSize: 16 })} />;
 }

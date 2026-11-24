@@ -62,7 +62,7 @@ export default function Share() {
   const canSend = needsImage ? !!imageUrl : !!(imageUrl || caption.trim() || mode === "checkin");
 
   return (
-    <Screen>
+    <Screen tab>
       <Header title="Share a moment" />
       <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 6 }}>

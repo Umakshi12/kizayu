@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { parseClock, toHHMM } from "../../reminders";
 import { Modal, Pressable, ScrollView, View } from "react-native";
 import { Text } from "../../components/Text";
 import { showAlert } from "../../alert";
@@ -52,10 +53,12 @@ function AddVital({ visible, onClose }: { visible: boolean; onClose: () => void 
 function AddMedication({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const qc = useQueryClient();
   const [name, setName] = useState("");
-  const [schedule, setSchedule] = useState("Daily • 8 AM");
+  const [schedule, setSchedule] = useState("Daily");
+  const [remind, setRemind] = useState("");
+  const clock = parseClock(remind);
   const add = useMutation({
-    mutationFn: () => post("/health/medications", { name: name.trim(), schedule: schedule.trim() }),
-    onSuccess: () => { setName(""); qc.invalidateQueries({ queryKey: ["health"] }); onClose(); },
+    mutationFn: () => post("/health/medications", { name: name.trim(), schedule: schedule.trim(), ...(clock ? { remindAt: toHHMM(clock) } : {}) }),
+    onSuccess: () => { setName(""); setRemind(""); qc.invalidateQueries({ queryKey: ["health"] }); onClose(); },
     onError: e => showAlert("Couldn't save", e instanceof Error ? e.message : "Try again"),
   });
   return (
@@ -65,9 +68,11 @@ function AddMedication({ visible, onClose }: { visible: boolean; onClose: () => 
           <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 14 }}>Add medication</Text>
           <Field label="Name" value={name} onChangeText={setName} autoCapitalize="words" placeholder="Vitamin D" />
           <Field label="Schedule" value={schedule} onChangeText={setSchedule} autoCapitalize="sentences" />
+          <Field label="Remind me at (optional)" value={remind} onChangeText={setRemind} placeholder="8:00 AM" keyboardType="numbers-and-punctuation"
+            hint={remind && !clock ? "Use a time like 8:00 AM or 20:30" : "Your phone will remind you every day at this time"} />
           <View style={{ flexDirection: "row", gap: 10 }}>
             <Button title="Cancel" variant="soft" onPress={onClose} style={{ flex: 1 }} />
-            <Button title="Save" onPress={() => add.mutate()} loading={add.isPending} disabled={!name.trim() || !schedule.trim()} style={{ flex: 1 }} />
+            <Button title="Save" onPress={() => add.mutate()} loading={add.isPending} disabled={!name.trim() || !schedule.trim() || (!!remind && !clock)} style={{ flex: 1 }} />
           </View>
         </View>
       </View>

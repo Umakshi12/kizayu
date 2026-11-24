@@ -68,14 +68,16 @@ in a yellow "Dev mode" box. This never happens in production.
 | Sign-in | Email and password; phone number with SMS code (new numbers create an account); Google (appears once configured); forgot password with an emailed code; add or change a password |
 | Feed | Posts, likes, comments, 24-hour stories, photo upload, share to a chosen circle |
 | Home | Personal greeting, stories, feed, and a step-by-step welcome guide for new families |
-| My Day | Daily repeating tasks with a progress card; add doctor visits, calls and reminders |
+| My Day | Daily repeating tasks with a progress card; add doctor visits and calls. Tasks with a time get a daily phone reminder |
 | Family Pulse | Live activity per circle, member status, SOS highlight |
-| Health Vault | Vitals, medications, records. Visible to your circles; a doctor sees them only after you link them |
+| Health Vault | Vitals, medications (with optional daily reminder times), records. Visible to your circles; a doctor sees them only after you link them |
 | Family Doctor | Add your own doctor: by email if they use Kizayu (unlocks secure chat), or as a contact card. Choose which relatives can see your records. Doctors are private to your family |
 | Doctor inbox | Any account can turn on a doctor profile; doctors reply to patients and view records patients have shared |
 | Chat | Group chat per circle, live over WebSocket, with photos |
 | Notifications | In-app inbox with unread badge; push notifications for chat, comments, SOS (urgent), arrived home and doctor replies |
 | Safety | OpenStreetMap map, time-limited location sharing, arrived-home alerts, SOS |
+| Family lists | Shared grocery, to-do and packing lists for a circle: everyone adds and ticks items, and changes appear live for the others |
+| Emergency card | Blood group, allergies, conditions and an emergency contact with one-tap call, visible to people in your circles |
 | Games | Ludo (2 to 4 players, family or computer), Word Hunt, Trivia, Memory Match, family leaderboards |
 | Premium | Plans, free-tier limits, test purchases, cancel (stays active until the period ends) |
 | Help & About | FAQ, contact-support form with your past requests, About page, Terms and Privacy drafts |
@@ -83,7 +85,7 @@ in a yellow "Dev mode" box. This never happens in production.
 ## Tests
 
 ```bash
-cd backend && npm test                     # 182 end-to-end checks against the real API, database and sockets
+cd backend && npm test                     # 214 end-to-end checks against the real API, database and sockets
 cd mobile && npm run test:games            # 16 checks of the Ludo and Word Hunt rules
 cd mobile && npx tsc --noEmit              # typecheck
 ```

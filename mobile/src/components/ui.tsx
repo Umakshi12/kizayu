@@ -15,11 +15,12 @@ type Grad = readonly [string, string, ...string[]];
 // ---------- Layout ----------
 
 /** Every screen sits on a soft lavender gradient. */
-export function Screen({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+export function Screen({ children, style, tab }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; tab?: boolean }) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <LinearGradient colors={gradients.screen} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
-      <SafeAreaView edges={["top"]} style={[{ flex: 1 }, style]}>{children}</SafeAreaView>
+      {/* Keep content clear of the status bar, and (on non-tab screens) of the phone's navigation bar. Tab screens leave the bottom to the tab bar. */}
+      <SafeAreaView edges={tab ? ["top"] : ["top", "bottom"]} style={[{ flex: 1 }, style]}>{children}</SafeAreaView>
     </View>
   );
 }
@@ -105,16 +106,16 @@ export function Button({ title, onPress, variant = "primary", loading, disabled,
     <Pressable
       onPress={() => { haptic.tap(); onPress(); }} disabled={disabled || loading} accessibilityRole="button" accessibilityState={{ disabled: !!(disabled || loading) }}
       style={({ pressed }) => [
-        { borderRadius: radius.pill, minHeight: h, overflow: "hidden", opacity: disabled ? 0.45 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] },
+        { borderRadius: radius.pill, height: h, overflow: "hidden", opacity: disabled ? 0.45 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] },
         grad && !disabled && glow, style,
       ]}
     >
       {grad && <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
-      <View style={{ flex: 1, minHeight: h, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: size === "sm" ? 16 : 22, backgroundColor: grad ? "transparent" : bg, borderWidth: variant === "ghost" ? 1.5 : 0, borderColor: colors.border, borderRadius: radius.pill }}>
+      <View style={{ height: h, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingHorizontal: size === "sm" ? 16 : 22, backgroundColor: grad ? "transparent" : bg, borderWidth: variant === "ghost" ? 1.5 : 0, borderColor: colors.border, borderRadius: radius.pill }}>
         {loading ? <ActivityIndicator color={fg} /> : (
           <>
             {icon && <Ionicons name={icon} size={size === "sm" ? 16 : 19} color={fg} style={{ marginRight: 8 }} />}
-            <Text style={{ color: fg, fontWeight: "700", fontSize: size === "sm" ? 14 : 16 }}>{title}</Text>
+            <Text numberOfLines={1} style={{ color: fg, fontWeight: "700", fontSize: size === "sm" ? 14 : 16 }}>{title}</Text>
           </>
         )}
       </View>

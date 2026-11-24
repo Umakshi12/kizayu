@@ -47,6 +47,7 @@ model User {
   doctorMsgs    DoctorMessage[]
   doctorProfile Doctor?        @relation("DoctorAccount")
   reports       Report[]
+  emergency     EmergencyInfo?
   blocking      Block[]        @relation("Blocker")
   blockedBy     Block[]        @relation("Blocked")
 }
@@ -73,6 +74,7 @@ model Circle {
   posts      Post[]
   pulse      PulseEvent[]
   messages   Message[]
+  lists       SharedList[]
 }
 
 model CircleMember {
@@ -178,6 +180,7 @@ model Medication {
   userId    String
   name      String
   schedule  String
+  remindAt  String?   // "HH:MM" (24h): the app schedules a daily reminder at this time
   takenDate String?
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -356,4 +359,42 @@ model Block {
   blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
   blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
   @@id([blockerId, blockedId])
+}
+
+// A shared checklist for a circle (groceries, packing, to-dos). Everyone in the circle can add and tick items.
+model SharedList {
+  id          String   @id @default(cuid())
+  circleId    String
+  title       String
+  icon        String   @default("cart")
+  createdById String?
+  createdAt   DateTime @default(now())
+  circle      Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  items       SharedListItem[]
+  @@index([circleId])
+}
+
+model SharedListItem {
+  id        String    @id @default(cuid())
+  listId    String
+  text      String
+  addedById String?
+  doneAt    DateTime?
+  doneById  String?
+  createdAt DateTime  @default(now())
+  list      SharedList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  @@index([listId])
+}
+
+// Medical ID: what family or a first responder needs to know in an emergency. Visible to people in your circles.
+model EmergencyInfo {
+  userId       String   @id
+  bloodGroup   String?
+  allergies    String?
+  conditions   String?
+  contactName  String?
+  contactPhone String?
+  notes        String?
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

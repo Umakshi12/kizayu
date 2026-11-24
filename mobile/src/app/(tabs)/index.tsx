@@ -169,6 +169,7 @@ function Welcome({ name }: { name: string }) {
     { icon: "camera" as const, title: "Share your first moment", text: "Post a photo or a quick check-in.", grad: gradients.sunrise, onPress: () => router.navigate("/camera") },
     { icon: "checkbox" as const, title: "Plan your day", text: "Add medicines, water or a walk to My Day.", grad: gradients.success, onPress: () => router.navigate("/my-day") },
     { icon: "shield-checkmark" as const, title: "Set up safety", text: "Save your home and turn on SOS alerts.", grad: gradients.ocean, onPress: () => router.push("/safety") },
+    { icon: "id-card" as const, title: "Fill your emergency card", text: "Blood group, allergies and who to call.", grad: gradients.danger, onPress: () => router.push("/emergency") },
   ];
   return (
     <View style={{ paddingHorizontal: 16 }}>
@@ -201,7 +202,7 @@ export default function Home() {
   const first = user?.name.split(" ")[0] ?? "";
 
   return (
-    <Screen>
+    <Screen tab>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingTop: 10, paddingBottom: 8, gap: 12 }}>
         <Pressable onPress={() => router.navigate("/profile")} accessibilityLabel="Your profile">
           <Avatar uri={user?.avatarUrl} name={user?.name} size={46} />

@@ -458,6 +458,65 @@ async function main() {
   check("terms page is public", (await fetch(base + "/terms")).status === 200);
   check("premium switch reported to the app", typeof (await call("GET", "/premium/plans", t)).data.enabled === "boolean");
 
+  // =================================================================== shared lists
+  section = "lists";
+  const sMomL = await connect(mom.token);
+  const listEvents: any[] = [];
+  sMomL.on("listChanged", e => listEvents.push(e));
+  check("outsider can't read a circle's lists", (await call("GET", `/circles/${family.id}/lists`, outsider)).status === 403);
+  check("list needs a valid icon", (await call("POST", `/circles/${family.id}/lists`, riya.token, { title: "X", icon: "bomb" })).status === 400);
+  check("list needs a title", (await call("POST", `/circles/${family.id}/lists`, riya.token, { title: "  " })).status === 400);
+  const gl = await call("POST", `/circles/${family.id}/lists`, riya.token, { title: "Groceries", icon: "cart" });
+  check("a member can create a list", gl.status === 201 && gl.data.title === "Groceries" && gl.data.items.length === 0, gl.data);
+  check("outsider can't add items", (await call("POST", `/lists/${gl.data.id}/items`, outsider, { text: "milk" })).status === 403);
+  const milk = await call("POST", `/lists/${gl.data.id}/items`, demo.token, { text: "Milk" });
+  const eggs = await call("POST", `/lists/${gl.data.id}/items`, dad.token, { text: "Eggs" });
+  check("members can add items", milk.status === 201 && eggs.status === 201);
+  await wait(250);
+  check("list changes reach other members live", listEvents.some(e => e.listId === gl.data.id && e.circleId === family.id), listEvents);
+  const seen = (await call("GET", `/circles/${family.id}/lists`, mom.token)).data.find((l: any) => l.id === gl.data.id);
+  check("everyone in the circle sees the items in order", seen.items.map((i: any) => i.text).join() === "Milk,Eggs", seen);
+  check("tick an item", (await call("PATCH", `/lists/${gl.data.id}/items/${milk.data.id}`, mom.token, { done: true })).data.done === true);
+  const afterTick = (await call("GET", `/circles/${family.id}/lists`, t)).data.find((l: any) => l.id === gl.data.id);
+  check("ticked item records who did it", afterTick.items[0].done === true && afterTick.items[0].doneById === mom.user.id, afterTick.items[0]);
+  check("untick an item", (await call("PATCH", `/lists/${gl.data.id}/items/${milk.data.id}`, mom.token, { done: false })).data.done === false);
+  check("item can't be changed through the wrong list", (await call("PATCH", `/lists/${gl.data.id}/items/nope`, mom.token, { done: true })).status === 404);
+  await call("PATCH", `/lists/${gl.data.id}/items/${milk.data.id}`, mom.token, { done: true });
+  check("clear ticked items", (await call("POST", `/lists/${gl.data.id}/clear-done`, t)).data.removed === 1);
+  check("only unticked items remain", (await call("GET", `/circles/${family.id}/lists`, t)).data.find((l: any) => l.id === gl.data.id).items.length === 1);
+  check("remove a single item", (await call("DELETE", `/lists/${gl.data.id}/items/${eggs.data.id}`, dad.token)).status === 204);
+  check("a member who isn't the maker or an owner can't delete the list", (await call("DELETE", `/lists/${gl.data.id}`, mom.token)).status === 403);
+  check("the maker can delete their list", (await call("DELETE", `/lists/${gl.data.id}`, riya.token)).status === 204);
+  const owned = await call("POST", `/circles/${family.id}/lists`, riya.token, { title: "Trip" });
+  check("a circle owner can delete any list", (await call("DELETE", `/lists/${owned.data.id}`, t)).status === 204);
+  sMomL.disconnect();
+
+  // =================================================================== emergency card
+  section = "emergency";
+  const em0 = await call("GET", "/emergency/me", t);
+  check("emergency card starts empty", em0.status === 200 && em0.data.bloodGroup === "" && em0.data.contactPhone === "", em0.data);
+  check("blood group must be valid", (await call("PUT", "/emergency/me", t, { bloodGroup: "Z+" })).status === 400);
+  check("contact phone must look like a phone number", (await call("PUT", "/emergency/me", t, { contactPhone: "call me maybe" })).status === 400);
+  const em1 = await call("PUT", "/emergency/me", t, { bloodGroup: "O+", allergies: "Penicillin", conditions: "Asthma", contactName: "Mom", contactPhone: "+91 98000 00001", notes: "Inhaler in the bag" });
+  check("save emergency card", em1.status === 200 && em1.data.bloodGroup === "O+" && em1.data.allergies === "Penicillin", em1.data);
+  check("emergency card is read back", (await call("GET", "/emergency/me", t)).data.contactName === "Mom");
+  check("circle members can view it", (await call("GET", `/emergency/${demo.user.id}`, mom.token)).data.info.bloodGroup === "O+");
+  check("people outside the circle can't", (await call("GET", `/emergency/${demo.user.id}`, outsider)).status === 403);
+  const famCards = await call("GET", "/emergency/family", mom.token);
+  check("family list shows members who filled a card in", famCards.data.some((c: any) => c.user.id === demo.user.id && c.info.allergies === "Penicillin"), famCards.data);
+  check("family list excludes yourself", !(await call("GET", "/emergency/family", t)).data.some((c: any) => c.user.id === demo.user.id));
+  check("family list hides people outside the circle", (await call("GET", "/emergency/family", outsider)).data.length === 0);
+  await call("PUT", "/emergency/me", t, { bloodGroup: "", allergies: "", conditions: "", contactName: "", contactPhone: "", notes: "" });
+  check("an emptied card disappears from the family list", !(await call("GET", "/emergency/family", mom.token)).data.some((c: any) => c.user.id === demo.user.id));
+
+  // =================================================================== medicine reminders
+  section = "reminders";
+  check("reminder time must look like HH:MM", (await call("POST", "/health/medications", t, { name: "Vit C", schedule: "Daily", remindAt: "8:30pm" })).status === 400);
+  const rem = await call("POST", "/health/medications", t, { name: "Vitamin C", schedule: "Daily • 8:30 AM", remindAt: "08:30" });
+  check("medicine saves a reminder time", rem.status === 201 && rem.data.remindAt === "08:30", rem.data);
+  const ov = await call("GET", `/health/${demo.user.id}`, t);
+  check("overview includes the reminder time", ov.data.medications.find((m: any) => m.name === "Vitamin C")?.remindAt === "08:30", ov.data.medications);
+
   [sDemo, sMom, sOut, sDoc].forEach(s => s.disconnect());
   server.close(); pushServer.close();
   await prisma.$disconnect();

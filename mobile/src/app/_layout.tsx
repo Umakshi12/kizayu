@@ -9,7 +9,7 @@ import { useFonts } from "expo-font";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../auth";
-import { NotificationsBridge } from "../components/NotificationsBridge";
+import { NotificationsBridge, RemindersBridge } from "../components/NotificationsBridge";
 import { colors } from "../theme";
 
 // Only the five weights the app uses (loading the package index would bundle all 14 files).
@@ -32,6 +32,7 @@ function Navigator({ fontsReady }: { fontsReady: boolean }) {
   return (
     <>
       <NotificationsBridge />
+      {user && <RemindersBridge />}
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: "slide_from_right" }}>
         <Stack.Protected guard={!!user} redirectTo="/sign-in">
           <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
@@ -47,6 +48,8 @@ function Navigator({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="games/wordhunt" />
           <Stack.Screen name="chat/[circleId]" />
           <Stack.Screen name="safety" />
+          <Stack.Screen name="lists" />
+          <Stack.Screen name="emergency" />
           <Stack.Screen name="circles" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="premium" options={{ animation: "slide_from_bottom" }} />

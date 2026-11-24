@@ -37,7 +37,7 @@ export default function ForgotPassword() {
   return (
     <Screen>
       <Header title="Reset password" back />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === "web" ? undefined : "padding"} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 24, maxWidth: 480, width: "100%", alignSelf: "center" }} keyboardShouldPersistTaps="handled">
           {step === "email" ? (
             <>

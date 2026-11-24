@@ -22,6 +22,8 @@ const SHORTCUTS: { label: string; caption: string; icon: IconName; href: string;
   { label: "Health Vault", caption: "Vitals & medicines", icon: "pulse", href: "/health/me", grad: gradients.danger },
   { label: "Family Doctor", caption: "Records & chat", icon: "medical", href: "/doctor", grad: gradients.success },
   { label: "Safety", caption: "Location & SOS", icon: "shield-checkmark", href: "/safety", grad: gradients.ocean },
+  { label: "Family lists", caption: "Groceries & to-dos", icon: "cart", href: "/lists", grad: gradients.success },
+  { label: "Emergency card", caption: "Blood group & contacts", icon: "id-card", href: "/emergency", grad: gradients.danger },
   { label: "Games", caption: "Play together", icon: "game-controller", href: "/games", grad: gradients.sunrise },
 ];
 
@@ -49,7 +51,7 @@ export default function Care() {
   const others = (pulse.data?.members ?? []).filter(m => m.id !== user?.id);
 
   return (
-    <Screen>
+    <Screen tab>
       <Header title="Family Pulse" subtitle={circle ? circle.name : undefined}
         right={circleId ? <Pressable onPress={() => router.push(`/chat/${circleId}`)} accessibilityLabel="Open family chat"
           style={{ width: 42, height: 42, borderRadius: 21, overflow: "hidden" }}><IconTile icon="chatbubbles" gradient={gradients.primary} size={42} /></Pressable> : undefined} />

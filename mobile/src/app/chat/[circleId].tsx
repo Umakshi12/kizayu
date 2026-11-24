@@ -107,7 +107,7 @@ export default function Chat() {
   return (
     <Screen>
       <Header title={circle?.name ?? "Chat"} back right={circle ? <Text style={{ color: colors.muted }}>{circle.members.length} members</Text> : undefined} />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === "web" ? undefined : "padding"} style={{ flex: 1 }}>
         {history.isLoading ? <Loading /> : history.error ? <ErrorView error={history.error} onRetry={() => history.refetch()} /> : (
           <FlatList
             ref={listRef} data={messages} keyExtractor={m => m.id} contentContainerStyle={{ padding: 16 }}
