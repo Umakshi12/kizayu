@@ -141,9 +141,9 @@ export default function Safety() {
           <Card onPress={() => router.push("/sos-contacts")} style={{ marginTop: 12, flexDirection: "row", alignItems: "center", gap: 12 }}>
             <Ionicons name="people-circle" size={30} color={colors.danger} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: "700", fontSize: 16 }}>SOS contacts &amp; recording</Text>
+              <Text style={{ fontWeight: "700", fontSize: 16 }}>SOS settings</Text>
               <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
-                {(sosContacts.data?.length ?? 0) === 0 ? "Add family numbers to alert in an emergency" : `${sosContacts.data!.length} contact${sosContacts.data!.length === 1 ? "" : "s"} · video recording ${s?.sosRecording ? "on" : "off"}`}
+                {(sosContacts.data?.length ?? 0) === 0 ? "Add emergency contacts and choose recording" : `${sosContacts.data!.length} emergency contact${sosContacts.data!.length === 1 ? "" : "s"} · video recording ${s?.sosRecording ? "on" : "off"}`}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.faint} />

@@ -495,19 +495,41 @@ async function main() {
   // =================================================================== emergency card
   section = "emergency";
   const em0 = await call("GET", "/emergency/me", t);
-  check("emergency card starts empty", em0.status === 200 && em0.data.bloodGroup === "" && em0.data.contactPhone === "", em0.data);
+  check("emergency card starts empty", em0.status === 200 && em0.data.bloodGroup === "" && em0.data.contacts.length === 0 && em0.data.contactPhone === "", em0.data);
   check("blood group must be valid", (await call("PUT", "/emergency/me", t, { bloodGroup: "Z+" })).status === 400);
   check("contact phone must look like a phone number", (await call("PUT", "/emergency/me", t, { contactPhone: "call me maybe" })).status === 400);
-  const em1 = await call("PUT", "/emergency/me", t, { bloodGroup: "O+", allergies: "Penicillin", conditions: "Asthma", contactName: "Mom", contactPhone: "+91 98000 00001", notes: "Inhaler in the bag" });
-  check("save emergency card", em1.status === 200 && em1.data.bloodGroup === "O+" && em1.data.allergies === "Penicillin", em1.data);
-  check("emergency card is read back", (await call("GET", "/emergency/me", t)).data.contactName === "Mom");
-  check("circle members can view it", (await call("GET", `/emergency/${demo.user.id}`, mom.token)).data.info.bloodGroup === "O+");
+  const em1 = await call("PUT", "/emergency/me", t, { bloodGroup: "O+", allergies: "Penicillin, Peanuts", conditions: "Asthma", notes: "Inhaler in the bag" });
+  check("save emergency card", em1.status === 200 && em1.data.bloodGroup === "O+" && em1.data.allergies === "Penicillin, Peanuts", em1.data);
+
+  const ca = await call("POST", "/sos/contacts", t, { name: "Mom", relation: "Mother", phone: "+91 98000 00001" });
+  const cb = await call("POST", "/sos/contacts", t, { name: "Dr. Rao", relation: "Doctor", phone: "+91 98000 00002" });
+  check("add emergency contacts with a relationship", ca.status === 201 && ca.data.relation === "Mother" && cb.status === 201, [ca.data, cb.data]);
+  const edited = await call("PUT", `/sos/contacts/${cb.data.id}`, t, { name: "Dr. Rao Sr.", relation: "Family doctor" });
+  check("edit a contact", edited.status === 200 && edited.data.name === "Dr. Rao Sr." && edited.data.relation === "Family doctor" && edited.data.phone === "+919800000002", edited.data);
+  check("editing to a number already in the list is refused", (await call("PUT", `/sos/contacts/${cb.data.id}`, t, { phone: "+91 98000 00001" })).status === 409);
+  check("can't edit someone else's contact", (await call("PUT", `/sos/contacts/${cb.data.id}`, mom.token, { name: "Hacked" })).status === 404);
+
+  const emNow = (await call("GET", "/emergency/me", t)).data;
+  check("the card lists every contact, oldest first", emNow.contacts.map((c: any) => c.name).join() === "Mom,Dr. Rao Sr." && emNow.contactName === "Mom", emNow.contacts);
+  check("circle members can view the card with contacts", ((await call("GET", `/emergency/${demo.user.id}`, mom.token)).data.info.contacts as any[]).length === 2);
   check("people outside the circle can't", (await call("GET", `/emergency/${demo.user.id}`, outsider)).status === 403);
   const famCards = await call("GET", "/emergency/family", mom.token);
-  check("family list shows members who filled a card in", famCards.data.some((c: any) => c.user.id === demo.user.id && c.info.allergies === "Penicillin"), famCards.data);
+  const demoCard = famCards.data.find((c: any) => c.user.id === demo.user.id);
+  check("family list shows members who filled a card in", !!demoCard && demoCard.info.allergies === "Penicillin, Peanuts" && demoCard.info.contacts.length === 2, famCards.data);
   check("family list excludes yourself", !(await call("GET", "/emergency/family", t)).data.some((c: any) => c.user.id === demo.user.id));
   check("family list hides people outside the circle", (await call("GET", "/emergency/family", outsider)).data.length === 0);
-  await call("PUT", "/emergency/me", t, { bloodGroup: "", allergies: "", conditions: "", contactName: "", contactPhone: "", notes: "" });
+
+  // app 1.0.0 compatibility: a single contact sent with the card becomes the first contact
+  const legacy = await call("PUT", "/emergency/me", riya.token, { contactName: "Old Style", contactPhone: "+91 98111 11111" });
+  check("older apps' single contact is kept as a contact", legacy.status === 200 && legacy.data.contacts.length === 1 && legacy.data.contacts[0].name === "Old Style", legacy.data);
+  check("a number without a country code is explained", (await call("PUT", "/emergency/me", riya.token, { contactPhone: "98111 11111" })).status === 400);
+  await prisma.sosContact.deleteMany({ where: { userId: riya.user.id } });
+
+  // a card that is emptied (no medical info, no contacts) disappears from the family list
+  await call("PUT", "/emergency/me", t, { bloodGroup: "", allergies: "", conditions: "", notes: "" });
+  check("medical info alone off still leaves the contacts visible", (await call("GET", "/emergency/family", mom.token)).data.some((c: any) => c.user.id === demo.user.id));
+  await call("DELETE", `/sos/contacts/${ca.data.id}`, t);
+  await call("DELETE", `/sos/contacts/${cb.data.id}`, t);
   check("an emptied card disappears from the family list", !(await call("GET", "/emergency/family", mom.token)).data.some((c: any) => c.user.id === demo.user.id));
 
   // =================================================================== medicine reminders
@@ -528,8 +550,8 @@ async function main() {
 
   check("SOS contact needs a country code", (await call("POST", "/sos/contacts", t, { name: "Aunt", phone: "9876543210" })).status === 400);
   check("SOS contact needs a name", (await call("POST", "/sos/contacts", t, { name: " ", phone: "+919876543210" })).status === 400);
-  const c1 = await call("POST", "/sos/contacts", t, { name: "Aunt Meera", phone: "+91 98765-43210" });
-  check("add an SOS contact (the number is cleaned up)", c1.status === 201 && c1.data.phone === "+919876543210", c1.data);
+  const c1 = await call("POST", "/sos/contacts", t, { name: "Aunt Meera", relation: "Aunt", phone: "+91 98765-43210" });
+  check("add an SOS contact (the number is cleaned up)", c1.status === 201 && c1.data.phone === "+919876543210" && c1.data.relation === "Aunt", c1.data);
   check("duplicate numbers are refused", (await call("POST", "/sos/contacts", t, { name: "Again", phone: "+919876543210" })).status === 409);
   const c2 = await call("POST", "/sos/contacts", t, { name: "Uncle Raj", phone: "+14155550123" });
   check("list SOS contacts", (await call("GET", "/sos/contacts", t)).data.length === 2);

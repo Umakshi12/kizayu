@@ -75,7 +75,8 @@ function Navigator({ fontsReady }: { fontsReady: boolean }) {
 if (Platform.OS === "web" && typeof document !== "undefined" && !document.getElementById("kizayu-frame-css")) {
   const style = document.createElement("style");
   style.id = "kizayu-frame-css";
-  style.textContent = `@media (min-width: 600px) {
+  style.textContent = `*:focus, *:focus-visible { outline: none !important; }
+  @media (min-width: 600px) {
     [role="dialog"][aria-modal="true"] { left: 50% !important; right: auto !important; width: 440px !important; transform: translateX(-50%); }
   }`;
   document.head.appendChild(style);

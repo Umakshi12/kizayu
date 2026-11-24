@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal, Pressable, View } from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { post } from "../api";
@@ -11,15 +11,18 @@ import { Button, IconName } from "./ui";
 
 export type SheetAction = { label: string; icon: IconName; destructive?: boolean; onPress: () => void };
 
-function Backdrop({ visible, onClose, children }: { visible: boolean; onClose: () => void; children: React.ReactNode }) {
+/** Bottom sheet: dims the screen, lifts above the keyboard, closes when you tap outside. */
+export function Backdrop({ visible, onClose, children }: { visible: boolean; onClose: () => void; children: React.ReactNode }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: "rgba(10,13,18,0.55)", justifyContent: "flex-end" }}>
-        <Pressable onPress={() => undefined} style={{ backgroundColor: colors.bg, padding: 18, paddingBottom: 28, borderTopLeftRadius: 30, borderTopRightRadius: 30 }}>
-          <View style={{ width: 44, height: 5, borderRadius: 3, backgroundColor: colors.border, alignSelf: "center", marginBottom: 14 }} />
-          {children}
+      <KeyboardAvoidingView behavior={Platform.OS === "web" ? undefined : "padding"} style={{ flex: 1 }}>
+        <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: "rgba(10,13,18,0.55)", justifyContent: "flex-end" }}>
+          <Pressable onPress={() => undefined} style={{ backgroundColor: colors.bg, padding: 18, paddingBottom: 28, borderTopLeftRadius: 30, borderTopRightRadius: 30 }}>
+            <View style={{ width: 44, height: 5, borderRadius: 3, backgroundColor: colors.border, alignSelf: "center", marginBottom: 14 }} />
+            {children}
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

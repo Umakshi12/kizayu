@@ -395,18 +395,20 @@ model EmergencyInfo {
   bloodGroup   String?
   allergies    String?
   conditions   String?
-  contactName  String?
-  contactPhone String?
+  contactName  String?  // deprecated: contacts now live in SosContact (kept so no data is lost)
+  contactPhone String?  // deprecated
   notes        String?
   updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// People (often family without the app) who get an SMS with a private link when this user raises an SOS.
+// A user's emergency contacts: shown on their emergency card (visible to their circles) and sent an SMS with a
+// private link when they raise an SOS. People here are often family who don't have the app.
 model SosContact {
   id        String   @id @default(cuid())
   userId    String
   name      String
+  relation  String?  // Mom, Spouse, Friend...
   phone     String   // E.164
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

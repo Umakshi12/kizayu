@@ -33,20 +33,32 @@ const activeSince = () => new Date(Date.now() - ACTIVE_HOURS * 3600e3);
 
 // ---------------------------------------------------------------- contacts
 
-const contactOut = (c: { id: string; name: string; phone: string }) => ({ id: c.id, name: c.name, phone: c.phone });
+const contactOut = (c: { id: string; name: string; relation: string | null; phone: string }) => ({ id: c.id, name: c.name, relation: c.relation ?? "", phone: c.phone });
+
+const phoneField = z.string().transform(s => s.replace(/[\s().-]/g, "")).pipe(z.string().regex(/^\+[1-9]\d{7,14}$/, "Include the country code, like +91 98765 43210"));
+const relationField = z.string().trim().max(30).optional();
 
 sosRouter.get("/sos/contacts", wrap(async (req, res) => {
   res.json((await prisma.sosContact.findMany({ where: { userId: req.userId }, orderBy: { createdAt: "asc" } })).map(contactOut));
 }));
 
 sosRouter.post("/sos/contacts", wrap(async (req, res) => {
-  const b = parse(z.object({
-    name: z.string().trim().min(1).max(60),
-    phone: z.string().transform(s => s.replace(/[\s().-]/g, "")).pipe(z.string().regex(/^\+[1-9]\d{7,14}$/, "Include the country code, like +91 98765 43210")),
-  }), req.body);
-  if ((await prisma.sosContact.count({ where: { userId: req.userId } })) >= MAX_CONTACTS) throw new HttpError(400, `You can add up to ${MAX_CONTACTS} SOS contacts`);
-  if (await prisma.sosContact.findUnique({ where: { userId_phone: { userId: req.userId, phone: b.phone } } })) throw new HttpError(409, "That number is already in your SOS contacts");
-  res.status(201).json(contactOut(await prisma.sosContact.create({ data: { userId: req.userId, ...b } })));
+  const b = parse(z.object({ name: z.string().trim().min(1).max(60), relation: relationField, phone: phoneField }), req.body);
+  if ((await prisma.sosContact.count({ where: { userId: req.userId } })) >= MAX_CONTACTS) throw new HttpError(400, `You can add up to ${MAX_CONTACTS} emergency contacts`);
+  if (await prisma.sosContact.findUnique({ where: { userId_phone: { userId: req.userId, phone: b.phone } } })) throw new HttpError(409, "That number is already in your emergency contacts");
+  res.status(201).json(contactOut(await prisma.sosContact.create({ data: { userId: req.userId, name: b.name, relation: b.relation || null, phone: b.phone } })));
+}));
+
+sosRouter.put("/sos/contacts/:id", wrap(async (req, res) => {
+  const b = parse(z.object({ name: z.string().trim().min(1).max(60).optional(), relation: relationField, phone: phoneField.optional() }), req.body);
+  const c = await prisma.sosContact.findFirst({ where: { id: req.params.id, userId: req.userId } });
+  if (!c) throw new HttpError(404, "Contact not found");
+  if (b.phone && b.phone !== c.phone && (await prisma.sosContact.findUnique({ where: { userId_phone: { userId: req.userId, phone: b.phone } } }))) {
+    throw new HttpError(409, "That number is already in your emergency contacts");
+  }
+  res.json(contactOut(await prisma.sosContact.update({
+    where: { id: c.id }, data: { ...(b.name ? { name: b.name } : {}), ...(b.phone ? { phone: b.phone } : {}), ...(b.relation !== undefined ? { relation: b.relation || null } : {}) },
+  })));
 }));
 
 sosRouter.delete("/sos/contacts/:id", wrap(async (req, res) => {

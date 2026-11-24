@@ -69,11 +69,11 @@ export interface PatientHealth {
 // ---- shared lists + emergency card
 export interface ListItem { id: string; text: string; done: boolean; addedById: string | null; doneById: string | null; createdAt: string }
 export interface SharedList { id: string; circleId: string; title: string; icon: string; createdById: string | null; createdAt: string; items: ListItem[] }
-export interface EmergencyInfo { bloodGroup: string; allergies: string; conditions: string; contactName: string; contactPhone: string; notes: string; updatedAt: string | null }
+export interface EmergencyInfo { bloodGroup: string; allergies: string; conditions: string; notes: string; contacts: SosContact[]; updatedAt: string | null }
 export interface FamilyEmergency { user: PublicUser; info: EmergencyInfo }
 
 // ---- SOS
-export interface SosContact { id: string; name: string; phone: string }
+export interface SosContact { id: string; name: string; relation: string; phone: string }
 export interface SosEventInfo { id: string; link: string; startedAt: string; endedAt: string | null; lat: number | null; lng: number | null }
 export interface SosStartResult extends SosEventInfo { reused: boolean; contacts: number; smsSent: number; smsConfigured?: boolean; notifiedPeople: number }
 export interface SosActive { mine: SosEventInfo | null; others: (SosEventInfo & { user: PublicUser; clipCount: number })[] }

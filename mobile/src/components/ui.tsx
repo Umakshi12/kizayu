@@ -81,6 +81,30 @@ export function IconTile({ icon, color = colors.primary, bg = colors.primarySoft
     : <View style={[box, { backgroundColor: bg }]}>{inner}</View>;
 }
 
+type ChipTone = "primary" | "amber" | "danger" | "success" | "ghost";
+const CHIP_COLORS: Record<ChipTone, { bg: string; fg: string; border: string }> = {
+  primary: { bg: colors.primarySoft, fg: colors.primaryDark, border: colors.primarySoft },
+  amber: { bg: colors.warnSoft, fg: "#8A5A00", border: colors.warnSoft },
+  danger: { bg: colors.dangerSoft, fg: colors.danger, border: colors.dangerSoft },
+  success: { bg: colors.successSoft, fg: "#0E7D4B", border: colors.successSoft },
+  ghost: { bg: "#fff", fg: colors.muted, border: colors.border },
+};
+
+/** Small rounded label. Tappable when onPress is given (used for quick-pick suggestions). */
+export function Chip({ label, tone = "primary", onPress, small, icon, block }: { label: string; tone?: ChipTone; onPress?: () => void; small?: boolean; icon?: IconName; block?: boolean }) {
+  const c = CHIP_COLORS[tone];
+  const inner = (
+    <>
+      {icon && <Ionicons name={icon} size={small ? 12 : 14} color={c.fg} style={{ marginRight: 4 }} />}
+      <Text style={{ color: c.fg, fontWeight: "700", fontSize: small ? 11 : 13 }}>{label}</Text>
+    </>
+  );
+  const style = { flexDirection: "row" as const, alignItems: "center" as const, justifyContent: "center" as const, paddingHorizontal: small ? 9 : 13, paddingVertical: block ? 11 : small ? 3 : 7, borderRadius: radius.pill, backgroundColor: c.bg, borderWidth: 1, borderColor: c.border };
+  return onPress
+    ? <Pressable onPress={() => { haptic.select(); onPress(); }} accessibilityRole="button" style={({ pressed }) => [style, pressed && { opacity: 0.7 }]}>{inner}</Pressable>
+    : <View style={style}>{inner}</View>;
+}
+
 export function Pill({ label, active, onPress, icon }: { label: string; active?: boolean; onPress?: () => void; icon?: IconName }) {
   return (
     <Pressable onPress={() => { haptic.select(); onPress?.(); }} accessibilityRole="button" accessibilityState={{ selected: !!active }}

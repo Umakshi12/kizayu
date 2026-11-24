@@ -287,7 +287,7 @@ export default function Sos() {
         </Text>
         <View style={{ marginTop: 22, width: "100%", padding: 14, borderRadius: radius.lg, backgroundColor: "rgba(255,255,255,0.06)" }}>
           <Line ok text="Everyone in your circles gets an urgent alert with your location" />
-          <Line ok={contactCount > 0} warn={contactCount === 0} text={contactCount > 0 ? `${contactCount} SOS contact${contactCount === 1 ? "" : "s"} will get a message with a private link` : "No SOS contacts yet. Add family numbers in SOS contacts"} />
+          <Line ok={contactCount > 0} warn={contactCount === 0} text={contactCount > 0 ? `${contactCount} emergency contact${contactCount === 1 ? "" : "s"} will get a message with a private link` : "No emergency contacts yet. Add some in SOS settings"} />
           <Line ok={recordingEnabled} text={recordingEnabled ? "Video and audio will be recorded and shared" : "Video and audio recording is off"} />
         </View>
         {!starting && (
@@ -362,7 +362,7 @@ export default function Sos() {
           <View style={{ padding: 16, borderRadius: radius.lg, backgroundColor: "rgba(255,255,255,0.06)", flexDirection: "row", gap: 12, alignItems: "center" }}>
             <Ionicons name="videocam-off" size={26} color="#9FB2C0" />
             <Text style={{ color: "#C7D5E0", flex: 1, lineHeight: 20 }}>
-              {permDenied ? "Camera or microphone permission is off, so nothing is being recorded." : "Recording is off. You can turn it on in SOS contacts."}
+              {permDenied ? "Camera or microphone permission is off, so nothing is being recorded." : "Recording is off. You can turn it on in SOS settings."}
             </Text>
             {permDenied && <Button title="Settings" size="sm" variant="light" onPress={() => Linking.openSettings()} />}
           </View>
@@ -375,8 +375,8 @@ export default function Sos() {
           <Line ok text={event && !event.reused ? `Alerted ${event.notifiedPeople} ${event.notifiedPeople === 1 ? "person" : "people"} in your circles` : "Your circles have been alerted"} />
           <Line ok text="Sharing your live location" />
           {contactCount > 0
-            ? <Line ok={!smsNeeded} warn={smsNeeded} text={smsNeeded ? `Automatic SMS isn't set up. Tap "Text my contacts" below to send the link yourself.` : `${contactCount} SOS contact${contactCount === 1 ? "" : "s"} messaged with your private link`} />
-            : <Line warn text="No SOS contacts. Add family numbers in SOS contacts" />}
+            ? <Line ok={!smsNeeded} warn={smsNeeded} text={smsNeeded ? `Automatic SMS isn't set up. Tap "Text my contacts" below to send the link yourself.` : `${contactCount} emergency contact${contactCount === 1 ? "" : "s"} messaged with your private link`} />
+            : <Line warn text="No emergency contacts. Add some in SOS settings" />}
           {showCam && <Line ok={stats.uploaded > 0} text={stats.recorded === 0 ? "Recording starts in a moment…" : `${stats.uploaded} of ${stats.recorded} clips shared${stats.failed ? ` (${stats.failed} failed to upload)` : ""}`} />}
         </View>
 

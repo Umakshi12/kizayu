@@ -78,7 +78,7 @@ in a yellow "Dev mode" box. This never happens in production.
 | Safety | OpenStreetMap map, time-limited location sharing, arrived-home alerts |
 | SOS | 5-second cancel countdown, then urgent alerts to your circles and an SMS with a private link to up to 5 SOS contacts (no app needed). With recording turned on (opt-in, with a disclosure), the phone records video and audio in 15-second clips and uploads each one as it finishes, so contacts see near-live video, audio and a live map on the link page. Recordings are deleted after 30 days |
 | Family lists | Shared grocery, to-do and packing lists for a circle: everyone adds and ticks items, and changes appear live for the others |
-| Emergency card | Blood group, allergies, conditions and an emergency contact with one-tap call, visible to people in your circles |
+| Emergency card | A medical ID: blood group, allergies and conditions as chips, notes for a helper, and up to 5 emergency contacts with a one-tap Call button. Family cards expand to show the same. Visible to people in your circles. The contacts are the same list that gets texted during an SOS |
 | Games | Ludo (2 to 4 players, family or computer), Word Hunt, Trivia, Memory Match, family leaderboards |
 | Premium | Plans, free-tier limits, test purchases, cancel (stays active until the period ends) |
 | Help & About | FAQ, contact-support form with your past requests, About page, Terms and Privacy drafts |
@@ -86,7 +86,7 @@ in a yellow "Dev mode" box. This never happens in production.
 ## Tests
 
 ```bash
-cd backend && npm test                     # 261 end-to-end checks against the real API, database and sockets
+cd backend && npm test                     # 268 end-to-end checks against the real API, database and sockets
 cd mobile && npm run test:games            # 16 checks of the Ludo and Word Hunt rules
 cd mobile && npx tsc --noEmit              # typecheck
 ```
