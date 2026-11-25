@@ -4,7 +4,8 @@ import * as Notifications from "expo-notifications";
 // Daily reminders for medicines and timed tasks. They're scheduled on the phone itself, so they fire even when
 // the app is closed and need no server. (Local notifications don't work in the browser preview.)
 
-export type Reminder = { id: string; title: string; body: string; hour: number; minute: number };
+/** Daily by default. Give `weekday` (0 = Sunday .. 6) for a weekly repeat, or `date` ("YYYY-MM-DD") for a single day. */
+export type Reminder = { id: string; title: string; body: string; hour: number; minute: number; weekday?: number; date?: string };
 
 const PREFIX = "kz-reminder-";
 
@@ -37,10 +38,19 @@ export async function syncReminders(list: Reminder[]): Promise<void> {
     const existing = await Notifications.getAllScheduledNotificationsAsync();
     await Promise.all(existing.filter(n => n.identifier.startsWith(PREFIX)).map(n => Notifications.cancelScheduledNotificationAsync(n.identifier)));
     for (const r of list) {
+      const T = Notifications.SchedulableTriggerInputTypes;
+      let trigger: Notifications.NotificationTriggerInput;
+      if (r.date) {
+        const [y, m, d] = r.date.split("-").map(Number);
+        const when = new Date(y, m - 1, d, r.hour, r.minute);
+        if (when.getTime() <= Date.now()) continue; // already passed
+        trigger = { type: T.DATE, date: when, channelId: "reminders" };
+      } else if (r.weekday !== undefined) trigger = { type: T.WEEKLY, weekday: r.weekday + 1, hour: r.hour, minute: r.minute, channelId: "reminders" };
+      else trigger = { type: T.DAILY, hour: r.hour, minute: r.minute, channelId: "reminders" };
       await Notifications.scheduleNotificationAsync({
         identifier: PREFIX + r.id,
-        content: { title: r.title, body: r.body, sound: "default", data: { screen: r.id.startsWith("med-") ? "health" : "my-day" } },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: r.hour, minute: r.minute, channelId: "reminders" },
+        content: { title: r.title, body: r.body, sound: "default", data: { screen: r.id.startsWith("med-") ? "health" : r.id.startsWith("slot-") ? "/study" : "my-day" } },
+        trigger,
       });
     }
   } catch (e) {

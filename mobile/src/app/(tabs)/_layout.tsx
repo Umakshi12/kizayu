@@ -55,6 +55,7 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen name="study" options={{ title: "Study", tabBarIcon: icon("school", "school-outline") }} />
       <Tabs.Screen name="care" options={{ title: "Care", tabBarIcon: icon("heart", "heart-outline") }} />
       <Tabs.Screen name="profile" options={{ title: "Profile", tabBarIcon: icon("person", "person-outline") }} />
     </Tabs>

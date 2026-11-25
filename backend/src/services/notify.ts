@@ -9,7 +9,7 @@ export const userRoom = (userId: string) => `user:${userId}`;
 export interface NotifyInput {
   /** Who caused it. People who blocked this user don't get the notification. */
   from?: string;
-  kind: "chat" | "sos" | "comment" | "doctor" | "home" | "system" | "event" | "nudge" | "care" | "fitness" | "chores" | "checkin" | "memory";
+  kind: "chat" | "sos" | "comment" | "doctor" | "home" | "system" | "event" | "nudge" | "care" | "fitness" | "chores" | "checkin" | "memory" | "study";
   title: string;
   body: string;
   data?: Record<string, string>;
@@ -20,8 +20,8 @@ export interface NotifyInput {
  * Which preference switch controls each kind of notification. SOS, check-in, doctor and system messages are safety or
  * direct messages and can't be switched off.
  */
-export const PREF_FOR_KIND: Partial<Record<NotifyInput["kind"], "chat" | "comments" | "events" | "care" | "nudges" | "fitness" | "chores">> = {
-  chat: "chat", comment: "comments", event: "events", care: "care", home: "care", nudge: "nudges", memory: "nudges", fitness: "fitness", chores: "chores",
+export const PREF_FOR_KIND: Partial<Record<NotifyInput["kind"], "chat" | "comments" | "events" | "care" | "nudges" | "fitness" | "chores" | "study">> = {
+  chat: "chat", comment: "comments", event: "events", care: "care", home: "care", nudge: "nudges", memory: "nudges", fitness: "fitness", chores: "chores", study: "study",
 };
 
 /**

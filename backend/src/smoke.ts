@@ -890,7 +890,7 @@ async function main() {
   check("a win is only counted once", (await prisma.challengeWin.count({ where: { challengeId: chW.data.id, userId: demo.user.id } })) === 1 && (await hubNotes(demo.user.id, "fitness")).filter(n => n.title.includes("Challenge complete") && n.body.includes("Walk 5 km")).length === 1);
   const badges = await call("GET", "/badges", parent);
   const bd = (id: string) => badges.data.find((b: any) => b.id === id);
-  check("badges are worked out from real activity", badges.data.length === 8 && bd("first-steps").earned && bd("challenge-win").earned && !bd("hundred-km").earned && bd("hundred-km").goal === 100, badges.data);
+  check("badges are worked out from real activity", badges.data.length === 12 && bd("first-steps").earned && bd("challenge-win").earned && !bd("hundred-km").earned && bd("hundred-km").goal === 100, badges.data);
   check("someone who has done nothing has none", (await call("GET", "/badges", outsider)).data.every((b: any) => !b.earned));
   check("a member can't delete someone else's challenge", (await call("DELETE", `/challenges/${chW.data.id}`, dad.token)).status === 403);
   check("the creator can", (await call("DELETE", `/challenges/${chW.data.id}`, parent)).status === 204);
@@ -977,6 +977,114 @@ async function main() {
   await prisma.pushToken.delete({ where: { token: "ExponentPushToken[dad-mem]" } });
   check("an owner can remove any photo", (await call("DELETE", `/albums/photos/${ph.data.id}`, parent)).status === 204);
   check("deleting an album removes its photos", (await call("DELETE", `/albums/${al.data.id}`, kid)).status === 204 && (await prisma.albumPhoto.count({ where: { albumId: al.data.id } })) === 0);
+
+
+  // ---- Brain Gym ----
+  section = "brain";
+  const st0 = await call("GET", "/brain/stats", kid);
+  check("brain stats start empty", st0.status === 200 && st0.data.totalXp === 0 && st0.data.streak === 0 && st0.data.level === 1 && st0.data.share === false, st0.data);
+  check("an impossible score is refused", (await call("POST", "/brain/result", kid, { game: "math", score: 41 })).status === 400 && (await call("POST", "/brain/result", kid, { game: "chess", score: 1 })).status === 400);
+  const dk = await call("GET", "/brain/daily", kid), dk2 = await call("GET", "/brain/daily", parent);
+  check("the Daily Challenge is the same for everyone", dk.data.seed === dk2.data.seed && dk.data.games.length === 4 && dk.data.games.every((g: any) => !g.done), dk.data);
+  const r1 = await call("POST", "/brain/result", kid, { game: "math", score: 10, daily: true });
+  check("a daily run earns XP plus a bonus and starts the streak", r1.status === 201 && r1.data.xp === 40 && r1.data.bonus === 20 && r1.data.streakStarted && r1.data.stats.streak === 1 && r1.data.levelUp, r1.data);
+  const r2 = await call("POST", "/brain/result", kid, { game: "math", score: 12, daily: true });
+  check("the daily bonus only counts once per game", r2.data.xp === 24 && r2.data.bonus === 0 && r2.data.newBest, r2.data);
+  check("daily shows that game as done", (await call("GET", "/brain/daily", kid)).data.games.find((g: any) => g.game === "math").done === true);
+  const yday = new Date(Date.now() - 86400e3).toISOString().slice(0, 10), y2 = new Date(Date.now() - 2 * 86400e3).toISOString().slice(0, 10);
+  const kidId = mom.user.id;
+  await prisma.brainResult.createMany({ data: [{ userId: kidId, game: "quant", score: 3, xp: 36, date: yday }, { userId: kidId, game: "quant", score: 3, xp: 36, date: y2 }] });
+  const st1 = await call("GET", "/brain/stats", kid);
+  check("the streak counts consecutive days", st1.data.streak === 3 && st1.data.best >= 3, st1.data);
+  const levelBefore = st1.data.level;
+  for (let i = 0; i < 30; i++) await call("POST", "/brain/result", kid, { game: "stroop", score: 60 });
+  const st2 = await call("GET", "/brain/stats", kid);
+  check("XP is capped per day so it cannot be farmed", st2.data.todayXp === 500 && st2.data.level > levelBefore, st2.data);
+  const board1 = await call("GET", `/brain/board?circleId=${hub.id}`, parent);
+  check("the board hides people who have not opted in", board1.status === 200 && board1.data.length === 1 && board1.data[0].me, board1.data);
+  check("sharing can be switched on", (await call("PUT", "/brain/settings", kid, { share: true })).data.share === true);
+  const board2 = await call("GET", `/brain/board?circleId=${hub.id}`, parent);
+  check("opted-in people appear, ranked by weekly XP", board2.data.length === 2 && board2.data[0].user.id === kidId && board2.data[0].streak === 3, board2.data);
+  check("outsiders cannot see the board", (await call("GET", `/brain/board?circleId=${hub.id}`, outsider)).status === 403);
+  const sched2 = await import("./services/scheduler");
+  await prisma.pushToken.upsert({ where: { token: "ExponentPushToken[dad-brain]" }, update: {}, create: { token: "ExponentPushToken[dad-brain]", userId: dad.user.id, platform: "android" } });
+  await prisma.brainResult.create({ data: { userId: dad.user.id, game: "math", score: 5, xp: 10, date: yday } });
+  await prisma.user.updateMany({ data: { nudgeDate: null } });
+  const EVE2 = new Date(); EVE2.setUTCHours(20, 0, 0, 0);
+  await sched2.runEveningNudges(EVE2);
+  check("a streak at risk gets an evening nudge", (await hubNotes(dad.user.id, "nudge")).some(n => n.body.includes("Brain Gym")));
+  await prisma.pushToken.delete({ where: { token: "ExponentPushToken[dad-brain]" } });
+  await prisma.brainResult.deleteMany({ where: { userId: dad.user.id } });
+
+  // ---- Aaj Ka Plan ----
+  section = "study";
+  const sub = await call("POST", "/study/subjects", kid, { name: "Maths", chapters: ["Algebra", "Geometry", "Trigonometry", "Statistics"], examDate: new Date(Date.now() + 28 * 86400e3).toISOString().slice(0, 10) });
+  check("create a subject with chapters", sub.status === 201 && sub.data.total === 4 && sub.data.percent === 0 && sub.data.daysLeft >= 27 && sub.data.perWeek >= 1, sub.data);
+  const ch = sub.data.chapters;
+  const sub2 = await call("PATCH", `/study/chapters/${ch[0].id}`, kid, { done: true });
+  check("ticking a chapter updates progress", sub2.data.done === 1 && sub2.data.percent === 25, sub2.data);
+  check("add more chapters in bulk", (await call("POST", `/study/subjects/${sub.data.id}/chapters`, kid, { titles: ["Probability", "Mensuration"] })).data.total === 6);
+  check("a bad exam date is refused", (await call("POST", "/study/subjects", kid, { name: "X", examDate: "2026-13-45" })).status === 400);
+  check("other people cannot see or touch my syllabus", (await call("GET", "/study/subjects", outsider)).data.length === 0 && (await call("PATCH", `/study/subjects/${sub.data.id}`, outsider, { name: "hack" })).status === 404 && (await call("PATCH", `/study/chapters/${ch[1].id}`, outsider, { done: true })).status === 404);
+
+  const tmr = new Date(Date.now() + 86400e3).toISOString().slice(0, 10), last = new Date(Date.now() - 2 * 86400e3).toISOString().slice(0, 10);
+  const as1 = await call("POST", "/study/assignments", kid, { title: "Worksheet 4", subjectId: sub.data.id, dueDate: tmr, priority: "high" });
+  const as2 = await call("POST", "/study/assignments", kid, { title: "Old essay", dueDate: last });
+  const as3 = await call("POST", "/study/assignments", kid, { title: "Someday project" });
+  check("create assignments", as1.status === 201 && as1.data.subject === "Maths" && as1.data.dueIn === 1 && as2.data.overdue === true && as3.data.dueIn === null, [as1.data, as2.data]);
+  const al1 = await call("GET", "/study/assignments", kid);
+  check("open work is sorted by deadline, overdue first", al1.data.map((a: any) => a.title).join() === "Old essay,Worksheet 4,Someday project", al1.data.map((a: any) => a.title));
+  check("an assignment cannot use someone else's subject", (await call("POST", "/study/assignments", outsider, { title: "x", subjectId: sub.data.id })).status === 404);
+  const dnA = await call("PATCH", `/study/assignments/${as2.data.id}`, kid, { done: true });
+  check("finish an assignment", dnA.data.done === true && dnA.data.overdue === false && (await call("GET", "/study/assignments", kid)).data.at(-1).title === "Old essay");
+
+  const mon = await call("POST", "/study/timetable", kid, { title: "Maths class", subjectId: sub.data.id, weekday: 1, startMin: 16 * 60, endMin: 17 * 60 });
+  check("add a weekly slot", mon.status === 201 && mon.data.repeats && mon.data.color, mon.data);
+  check("overlapping slots are refused", (await call("POST", "/study/timetable", kid, { title: "Clash", weekday: 1, startMin: 16 * 60 + 30, endMin: 17 * 60 + 30 })).status === 409);
+  check("a slot needs a weekday or a date, not both", (await call("POST", "/study/timetable", kid, { title: "x", weekday: 1, date: tmr, startMin: 600, endMin: 660 })).status === 400 && (await call("POST", "/study/timetable", kid, { title: "x", startMin: 600, endMin: 660 })).status === 400);
+  check("the end must be after the start", (await call("POST", "/study/timetable", kid, { title: "x", weekday: 2, startMin: 700, endMin: 700 })).status === 400);
+  const one = await call("POST", `/study/schedule`, kid, { assignmentId: as1.data.id, minutes: 45 });
+  check("one tap scheduling finds a free window", one.status === 201 && one.data.title === "Worksheet 4" && one.data.startMin >= 900 && one.data.endMin <= 1260 && one.data.date >= new Date().toISOString().slice(0, 10), one.data);
+  const two = await call("POST", `/study/schedule`, kid, { chapterId: ch[1].id, minutes: 60 });
+  check("scheduling a chapter names it after the subject", two.status === 201 && two.data.title === "Maths: Geometry" && !(two.data.date === one.data.date && two.data.startMin < one.data.endMin && one.data.startMin < two.data.endMin), two.data);
+  const tl = await call("GET", "/study/timetable", kid);
+  check("timetable lists weekly and upcoming one-off slots", tl.data.length === 3, tl.data);
+  const td = await call("GET", "/study/today", kid);
+  check("today shows slots, deadlines and chapters left", td.status === 200 && Array.isArray(td.data.slots) && td.data.assignments.some((a: any) => a.title === "Worksheet 4") && !td.data.assignments.some((a: any) => a.title === "Old essay") && td.data.chaptersLeft === 5, td.data);
+  check("delete a slot", (await call("DELETE", `/study/timetable/${two.data.id}`, kid)).status === 204 && (await call("DELETE", `/study/timetable/${two.data.id}`, kid)).status === 404);
+
+  const n1 = await call("POST", "/study/notes", kid, { title: "Quadratic formula", kind: "formula", body: "x = (-b ± √(b²-4ac)) / 2a", subjectId: sub.data.id });
+  const n2 = await call("POST", "/study/notes", kid, { title: "Khan Academy", kind: "link", url: "https://www.khanacademy.org/math" });
+  const n3 = await call("POST", "/study/notes", kid, { title: "Board photo", kind: "file", url: "http://localhost/uploads/board.jpg" });
+  check("save formulas, links and photos", n1.status === 201 && n2.status === 201 && n3.status === 201);
+  check("a link note needs a link and a text note needs text", (await call("POST", "/study/notes", kid, { title: "x", kind: "link" })).status === 400 && (await call("POST", "/study/notes", kid, { title: "x", kind: "note", body: "  " })).status === 400);
+  const nl = await call("GET", "/study/notes?q=quadratic", kid);
+  check("search finds notes", nl.data.length === 1 && nl.data[0].subject === "Maths", nl.data);
+  check("filter notes by subject", (await call("GET", `/study/notes?subjectId=${sub.data.id}`, kid)).data.length === 1 && (await call("GET", "/study/notes", kid)).data.length === 3);
+  check("other people cannot read or change my notes", (await call("GET", "/study/notes", outsider)).data.length === 0 && (await call("DELETE", `/study/notes/${n1.data.id}`, outsider)).status === 404);
+  check("delete a note", (await call("DELETE", `/study/notes/${n2.data.id}`, kid)).status === 204);
+
+  const studyMod = await import("./routes/study");
+  await prisma.pushToken.upsert({ where: { token: "ExponentPushToken[kid-study]" }, update: {}, create: { token: "ExponentPushToken[kid-study]", userId: kidId, platform: "android" } });
+  const eve = new Date(); eve.setUTCHours(18, 0, 0, 0);
+  const night = new Date(eve); night.setUTCHours(3, 0, 0, 0);
+  const nStudy0 = (await hubNotes(kidId, "study")).length;
+  check("no assignment alerts in the middle of the night", (await studyMod.runAssignmentReminders(night)) === 0);
+  check("a 'due tomorrow' alert in the evening, once", (await studyMod.runAssignmentReminders(eve)) >= 1 && (await studyMod.runAssignmentReminders(eve)) === 0 && (await hubNotes(kidId, "study")).length === nStudy0 + 1);
+  check("the alert names the assignment", (await hubNotes(kidId, "study"))[0].body.includes("Worksheet 4"));
+  await call("PUT", "/prefs/notifications", kid, { study: false });
+  await prisma.assignment.updateMany({ where: { userId: kidId }, data: { notifiedOn: null } });
+  await studyMod.runAssignmentReminders(eve);
+  check("study alerts can be switched off", (await hubNotes(kidId, "study")).length === nStudy0 + 1);
+  await call("PUT", "/prefs/notifications", kid, { study: true });
+  await prisma.pushToken.delete({ where: { token: "ExponentPushToken[kid-study]" } });
+  const bdg = (await call("GET", "/badges", kid)).data;
+  check("brain and homework badges come from real progress", bdg.find((b: any) => b.id === "brain-warmup").earned && bdg.find((b: any) => b.id === "brain-streak-7").value === 3 && bdg.find((b: any) => b.id === "homework-hero").value === 1, bdg);
+  await prisma.brainResult.deleteMany({ where: { userId: kidId } });
+  await prisma.subject.deleteMany({ where: { userId: kidId } });
+  await prisma.assignment.deleteMany({ where: { userId: kidId } });
+  await prisma.timetableSlot.deleteMany({ where: { userId: kidId } });
+  await prisma.studyNote.deleteMany({ where: { userId: kidId } });
 
   await prisma.circle.delete({ where: { id: hub.id } });
   section = "hub";

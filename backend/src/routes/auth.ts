@@ -164,14 +164,15 @@ authRouter.post("/me/delete", requireAuth, wrap(async (req, res) => {
   const u = await prisma.user.findUniqueOrThrow({ where: { id: req.userId } });
   if (u.passwordHash && !(b.password && (await bcrypt.compare(b.password, u.passwordHash)))) throw new HttpError(400, "Password is incorrect");
 
-  const [posts, stories, messages, sosClips, albumPhotos] = await Promise.all([
+  const [posts, stories, messages, sosClips, albumPhotos, studyFiles] = await Promise.all([
     prisma.post.findMany({ where: { authorId: u.id }, select: { imageUrl: true } }),
     prisma.story.findMany({ where: { authorId: u.id }, select: { imageUrl: true } }),
     prisma.message.findMany({ where: { userId: u.id }, select: { imageUrl: true } }),
     prisma.sosClip.findMany({ where: { event: { userId: u.id } }, select: { url: true } }),
     prisma.albumPhoto.findMany({ where: { uploadedById: u.id }, select: { url: true } }),
+    prisma.studyNote.findMany({ where: { userId: u.id, kind: "file" }, select: { url: true } }),
   ]);
-  const files = [...posts.map(x => x.imageUrl), ...stories.map(x => x.imageUrl), ...messages.map(x => x.imageUrl), ...sosClips.map(x => x.url), ...albumPhotos.map(x => x.url)].concat(u.avatarUrl?.includes("/uploads/") ? [u.avatarUrl] : []);
+  const files = [...posts.map(x => x.imageUrl), ...stories.map(x => x.imageUrl), ...messages.map(x => x.imageUrl), ...sosClips.map(x => x.url), ...albumPhotos.map(x => x.url), ...studyFiles.map(x => x.url)].concat(u.avatarUrl?.includes("/uploads/") ? [u.avatarUrl] : []);
 
   await prisma.$transaction(async tx => {
     const owned = await tx.circleMember.findMany({ where: { userId: u.id, role: "owner" } });

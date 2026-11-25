@@ -55,6 +55,12 @@ model User {
   nudgeDate     String?              // last local day the evening "still pending" nudge was sent
   memoryDate    String?              // last local day an "on this day" nudge was sent
   habits        Habit[]
+  brainResults  BrainResult[]
+  brainShare    Boolean  @default(false) // show my brain streak to my circles
+  subjects      Subject[]
+  assignments   Assignment[]
+  slots         TimetableSlot[]
+  studyNotes    StudyNote[]
   checkIns      CheckIn[]
   notifyPrefs   NotifyPrefs?
   rsvps         EventRsvp[]
@@ -490,6 +496,7 @@ model NotifyPrefs {
   nudges   Boolean @default(true)  // evening "still pending" + "on this day"
   fitness  Boolean @default(true)  // challenges + "passed you"
   chores   Boolean @default(true)
+  study    Boolean @default(true)  // assignments due + brain-streak nudges
   user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -659,4 +666,84 @@ model AlbumPhoto {
   createdAt    DateTime @default(now())
   album        Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
   @@index([albumId])
+}
+
+// ---------------------------------------------------------------- brain gym
+model BrainResult {
+  id        String   @id @default(cuid())
+  userId    String
+  game      String   // math | matrix | stroop | quant
+  score     Int
+  xp        Int
+  date      String   // the user's local day, "YYYY-MM-DD"
+  daily     Boolean  @default(false) // the shared Daily Challenge run (counts once per game per day)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, date])
+}
+
+// ---------------------------------------------------------------- student workspace (private to each person)
+model Subject {
+  id        String    @id @default(cuid())
+  userId    String
+  name      String
+  color     String    @default("#18B8D9")
+  examDate  String?   // "YYYY-MM-DD"
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapters  Chapter[]
+  @@index([userId])
+}
+
+model Chapter {
+  id        String   @id @default(cuid())
+  subjectId String
+  title     String
+  done      Boolean  @default(false)
+  position  Int      @default(0)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  @@index([subjectId])
+}
+
+model Assignment {
+  id         String    @id @default(cuid())
+  userId     String
+  subjectId  String?
+  title      String
+  dueDate    String?   // "YYYY-MM-DD"
+  priority   String    @default("normal") // low | normal | high
+  done       Boolean   @default(false)
+  doneAt     DateTime?
+  notifiedOn String?   // last local day a "due tomorrow" alert was sent
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, done])
+}
+
+model TimetableSlot {
+  id        String   @id @default(cuid())
+  userId    String
+  subjectId String?
+  title     String
+  weekday   Int?     // 0 = Sunday .. 6 = Saturday, for weekly repeats
+  date      String?  // "YYYY-MM-DD" for a one-off slot
+  startMin  Int      // minutes since local midnight
+  endMin    Int
+  note      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model StudyNote {
+  id        String   @id @default(cuid())
+  userId    String
+  subjectId String?
+  kind      String   @default("note") // note | formula | link | file
+  title     String
+  body      String   @default("")
+  url       String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
 }

@@ -117,4 +117,36 @@ export interface ChoreBoard {
 export interface AlbumSummary { id: string; title: string; count: number; cover: string | null; createdAt: string }
 export interface AlbumDetail { id: string; title: string; createdById: string | null; photos: { id: string; url: string; caption: string | null; createdAt: string; by: PublicUser | null }[] }
 export interface Memory { kind: "post" | "photo"; id: string; url: string; text: string | null; yearsAgo: number; by: string | null }
-export type NotifyPrefs = Record<"chat" | "comments" | "events" | "care" | "nudges" | "fitness" | "chores", boolean>;
+export type NotifyPrefs = Record<"chat" | "comments" | "events" | "care" | "nudges" | "fitness" | "chores" | "study", boolean>;
+
+// ---- brain gym
+export type BrainGame = "math" | "matrix" | "stroop" | "quant";
+export interface BrainStats {
+  totalXp: number; level: number; xpIntoLevel: number; xpForNext: number; streak: number; best: number;
+  playedToday: boolean; todayXp: number; weekXp: number; bestScores: Record<BrainGame, number>; dailyDone: BrainGame[]; share: boolean;
+}
+export interface BrainDaily { date: string; seed: number; games: { game: BrainGame; done: boolean }[]; bonus: number }
+export interface BrainResultReply { xp: number; bonus: number; capped: boolean; newBest: boolean; levelUp: boolean; streakStarted: boolean; stats: Omit<BrainStats, "share"> }
+export interface BrainBoardRow { user: PublicUser; weekXp: number; streak: number; level: number; me: boolean }
+
+// ---- student workspace
+export interface Chapter { id: string; title: string; done: boolean }
+export interface Subject {
+  id: string; name: string; color: string; examDate: string | null; daysLeft: number | null; examPassed: boolean;
+  done: number; total: number; percent: number; perWeek: number | null; chapters: Chapter[];
+}
+export interface Assignment {
+  id: string; title: string; subjectId: string | null; subject: string | null; color: string | null; dueDate: string | null;
+  priority: "low" | "normal" | "high"; done: boolean; doneAt: string | null; dueIn: number | null; overdue: boolean;
+}
+export interface TimetableSlot {
+  id: string; title: string; subjectId: string | null; subject: string | null; color: string | null;
+  weekday: number | null; date: string | null; startMin: number; endMin: number; note: string | null; repeats: boolean;
+}
+export interface StudyToday {
+  date: string; slots: (TimetableSlot & { now: boolean; past: boolean })[]; assignments: Assignment[]; chaptersLeft: number;
+}
+export interface StudyNote {
+  id: string; title: string; kind: "note" | "formula" | "link" | "file"; body: string; url: string | null;
+  subjectId: string | null; subject: string | null; color: string | null; createdAt: string;
+}

@@ -5,7 +5,7 @@ import { parse, wrap } from "../util";
 
 export const prefsRouter = Router();
 
-const FLAGS = ["chat", "comments", "events", "care", "nudges", "fitness", "chores"] as const;
+const FLAGS = ["chat", "comments", "events", "care", "nudges", "fitness", "chores", "study"] as const;
 
 // The app tells the server its timezone on every launch, so "today", reminders and nudges use the user's real day.
 prefsRouter.put("/prefs/timezone", wrap(async (req, res) => {

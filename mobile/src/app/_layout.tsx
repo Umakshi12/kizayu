@@ -63,6 +63,12 @@ function Navigator({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="chores" />
           <Stack.Screen name="albums" />
           <Stack.Screen name="badges" />
+          <Stack.Screen name="brain" />
+          <Stack.Screen name="brain-play" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="study-timetable" />
+          <Stack.Screen name="study-assignments" />
+          <Stack.Screen name="study-syllabus" />
+          <Stack.Screen name="study-materials" />
           <Stack.Screen name="premium" options={{ animation: "slide_from_bottom" }} />
           <Stack.Screen name="help" />
           <Stack.Screen name="about" />

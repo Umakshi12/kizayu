@@ -4,6 +4,8 @@ import { fmtTime, localDate, localMinutes, parseHHMM } from "./time";
 import { runCheckIns } from "../routes/checkins";
 import { runEventReminders } from "../routes/events";
 import { runMemories } from "../routes/albums";
+import { runAssignmentReminders } from "../routes/study";
+import { addDays } from "../routes/habits";
 
 // Background jobs. Every job takes an injectable `now` and claims its work with an atomic updateMany,
 // so running twice (or on two servers) never sends the same notification twice.
@@ -62,8 +64,11 @@ export async function runEveningNudges(now = new Date()) {
     const openTasks = tasks.filter(t => !(t.doneDate === today && t.doneCount >= t.targetCount)).length;
     const habits = await prisma.habit.findMany({ where: { userId: u.id, archived: false }, include: { logs: { where: { date: today }, select: { count: true } } } });
     const openHabits = habits.filter(h => (h.logs[0]?.count ?? 0) < h.target).length;
-    if (!openTasks && !openHabits) continue;
-    const parts = [openTasks && `${openTasks} task${openTasks > 1 ? "s" : ""}`, openHabits && `${openHabits} habit${openHabits > 1 ? "s" : ""}`].filter(Boolean).join(" and ");
+    // A brain streak that would break tonight (played yesterday, not yet today).
+    const brainDays = (await prisma.brainResult.findMany({ where: { userId: u.id, date: { gte: addDays(today, -1) } }, select: { date: true } })).map(r => r.date);
+    const brainAtRisk = brainDays.includes(addDays(today, -1)) && !brainDays.includes(today);
+    if (!openTasks && !openHabits && !brainAtRisk) continue;
+    const parts = [openTasks && `${openTasks} task${openTasks > 1 ? "s" : ""}`, openHabits && `${openHabits} habit${openHabits > 1 ? "s" : ""}`, brainAtRisk && "a Brain Gym streak to keep"].filter(Boolean).join(" and ");
     await notify([u.id], { kind: "nudge", title: "Still on your list today", body: `You have ${parts} left. A few minutes is enough.`, data: { screen: "/" } });
     sent++;
   }
@@ -77,6 +82,7 @@ const JOBS: Array<[string, (now: Date) => Promise<number>]> = [
   ["check-ins", runCheckIns],
   ["event-reminders", runEventReminders],
   ["memories", runMemories],
+  ["assignments", runAssignmentReminders],
 ];
 
 let running = false;

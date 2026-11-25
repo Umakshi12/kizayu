@@ -8,7 +8,7 @@ import { closeSocket, getSocket } from "../realtime";
 import { registerForPush, routeFor, unregisterPush } from "../push";
 import { get, put } from "../api";
 import { parseClock, syncReminders, type Reminder } from "../reminders";
-import type { Habit, HealthOverview, Task } from "../types";
+import type { Habit, HealthOverview, Task, TimetableSlot } from "../types";
 
 /** Wires push + realtime for the signed-in user: registers the device, handles taps, refreshes data live. */
 export function NotificationsBridge() {
@@ -57,6 +57,7 @@ export function RemindersBridge() {
   const health = useQuery({ queryKey: ["health", user?.id], enabled: !!user, queryFn: () => get<HealthOverview>(`/health/${user!.id}`) });
   const tasks = useQuery({ queryKey: ["tasks"], enabled: !!user, queryFn: () => get<{ items: Task[]; remaining: number }>("/tasks") });
   const habits = useQuery({ queryKey: ["habits"], enabled: !!user, queryFn: () => get<Habit[]>("/habits") });
+  const slots = useQuery({ queryKey: ["timetable"], enabled: !!user, queryFn: () => get<TimetableSlot[]>("/study/timetable") });
 
   const list: Reminder[] = [];
   for (const m of health.data?.medications ?? []) {
@@ -71,11 +72,16 @@ export function RemindersBridge() {
     const t = parseClock(h.remindAt);
     if (t) list.push({ id: `habit-${h.id}`, title: h.title, body: "Your daily habit", ...t });
   }
-  const signature = JSON.stringify(list.map(r => [r.id, r.title, r.hour, r.minute]));
+  // Timetable: a heads-up 10 minutes before each study slot (weekly slots repeat, one-off slots fire once).
+  for (const s of slots.data ?? []) {
+    const start = Math.max(0, s.startMin - 10);
+    list.push({ id: `slot-${s.id}`, title: s.title, body: "Study time starts in 10 minutes", hour: Math.floor(start / 60), minute: start % 60, ...(s.date ? { date: s.date } : { weekday: s.weekday ?? 0 }) });
+  }
+  const signature = JSON.stringify(list.map(r => [r.id, r.title, r.hour, r.minute, r.weekday, r.date]));
 
   useEffect(() => {
     if (!user) { void syncReminders([]); return; }
-    if (health.isSuccess && tasks.isSuccess && habits.isSuccess) void syncReminders(list);
-  }, [user?.id, signature, health.isSuccess, tasks.isSuccess, habits.isSuccess]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (health.isSuccess && tasks.isSuccess && habits.isSuccess && !slots.isLoading) void syncReminders(list);
+  }, [user?.id, signature, health.isSuccess, tasks.isSuccess, habits.isSuccess, slots.isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }

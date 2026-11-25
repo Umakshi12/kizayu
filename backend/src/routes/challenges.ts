@@ -97,13 +97,17 @@ export async function sharedDistanceThisWeek(userId: string) {
 // Badges are worked out from what the person has already done, so there's nothing to keep in sync.
 challengesRouter.get("/badges", wrap(async (req, res) => {
   const uid = req.userId;
-  const [acts, wins, habits, chores, posts] = await Promise.all([
+  const [acts, wins, habits, chores, posts, brain, homework] = await Promise.all([
     prisma.activity.aggregate({ where: { userId: uid }, _count: true, _sum: { distanceM: true } }),
     prisma.challengeWin.count({ where: { userId: uid } }),
     prisma.habit.findMany({ where: { userId: uid }, include: { logs: { select: { date: true, count: true } } } }),
     prisma.choreDone.count({ where: { userId: uid, status: "approved" } }),
     prisma.post.count({ where: { authorId: uid } }),
+    prisma.brainResult.findMany({ where: { userId: uid }, select: { date: true, xp: true } }),
+    prisma.assignment.count({ where: { userId: uid, done: true } }),
   ]);
+  const brainDays = [...new Set(brain.map(b => b.date))].map(date => ({ date, count: 1 }));
+  const brainXp = brain.reduce((s, b) => s + b.xp, 0);
   const km = Math.floor((acts._sum.distanceM ?? 0) / 1000);
   const bestHabit = Math.max(0, ...habits.map(h => bestStreakOf(h.logs, h.target)));
   const def = (id: string, title: string, desc: string, icon: string, value: number, goal: number) => ({ id, title, desc, icon, value: Math.min(value, goal), goal, earned: value >= goal });
@@ -116,5 +120,9 @@ challengesRouter.get("/badges", wrap(async (req, res) => {
     def("challenge-win", "Challenger", "Finish a family challenge", "trophy", wins, 1),
     def("helper", "Family helper", "Get 10 chores approved", "hand-left", chores, 10),
     def("memory-maker", "Memory maker", "Share 5 photos or posts", "camera", posts, 5),
+    def("brain-warmup", "Brain warm-up", "Finish your first Brain Gym game", "bulb", brain.length, 1),
+    def("brain-streak-7", "Sharp for a week", "Train your brain 7 days in a row", "flash", bestStreakOf(brainDays, 1), 7),
+    def("brain-level-5", "Quick thinker", "Reach Brain Gym level 5 (640 XP)", "rocket", brainXp, 640),
+    def("homework-hero", "Homework hero", "Finish 10 assignments", "school", homework, 10),
   ]);
 }));

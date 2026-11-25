@@ -87,6 +87,8 @@ in a yellow "Dev mode" box. This never happens in production.
 | Chores and rewards | Parents add chores with points. Kids tick them off, a parent approves, points are earned. Points are spent on rewards parents define; a parent marks the reward as given. Points are never created without a parent's approval |
 | Photo albums and memories | Shared albums per circle, and an On this day strip (and a 9 AM nudge) with photos and posts from earlier years. Shows nothing when there are no memories |
 | Smart reminders | Evening nudge (7 to 9 PM, once a day) when tasks or habits are still open, a family alert when a medicine is an hour overdue, and 1 day and 1 hour reminders for appointments. Every category can be switched off in Notification settings (safety alerts can't be) |
+| Brain Gym | Four short daily games: a 30 second mental math sprint that gets harder as you improve, a memory matrix, a focus (Stroop) test and five quant and logic puzzles with explanations. Every finished game earns XP, XP builds levels, and playing every day builds a streak. The Daily Challenge uses the same questions for the whole family, with a bonus once per game. The server checks that scores are humanly possible and caps XP per day. Streaks are private unless you choose to show them on the family board |
+| Aaj Ka Plan | A private student workspace: a weekly timetable (overlaps are refused, phone reminder 10 minutes before each slot), assignments with deadlines and a one tap "Schedule" that finds the next free study window, a syllabus tracker with chapters, progress and an exam countdown, and a vault for notes, formulas, links and photos of the board |
 | Games | Ludo (2 to 4 players, family or computer), Word Hunt, Trivia, Memory Match, family leaderboards |
 | Premium | Plans, free-tier limits, test purchases, cancel (stays active until the period ends) |
 | Help & About | FAQ, contact-support form with your past requests, About page, Terms and Privacy drafts |
@@ -121,6 +123,7 @@ restyle the whole app.
 
 - The phone tells the server its timezone every time the app opens, so "today", habit streaks, the evening nudge and morning memories all use the person's own day.
 - A background scheduler on the server runs every minute (appointments, calendar, missed medicine, safe-walk timers, nudges, memories). Each job claims its work atomically, so a restart or a second server never sends the same message twice.
+- Assignments get a "due today" alert in the morning and a "due tomorrow" alert in the evening, and a Brain Gym streak that would break tonight is mentioned in the evening nudge. Both can be switched off under "Study and brain streak".
 - Push messages reach Android phones only after Firebase (FCM) is set up for the app. Until then every alert is still saved in the in-app notification list and arrives live while the app is open.
 
 ### SOS limits worth knowing

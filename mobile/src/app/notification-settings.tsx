@@ -15,6 +15,7 @@ const ROWS: { key: keyof NotifyPrefs; title: string; sub: string; icon: IconName
   { key: "care", title: "Family care", sub: "Missed medicines and arrivals", icon: "heart" },
   { key: "fitness", title: "Fitness", sub: "Challenges and who passed you", icon: "walk" },
   { key: "chores", title: "Chores and rewards", sub: "Approvals, points and rewards", icon: "checkbox" },
+  { key: "study", title: "Study and brain streak", sub: "Assignments due and streak reminders", icon: "school" },
   { key: "nudges", title: "Gentle nudges", sub: "Evening reminder and On this day memories", icon: "sparkles" },
 ];
 

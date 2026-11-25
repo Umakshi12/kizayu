@@ -24,6 +24,7 @@ const ICON: Record<string, { name: IconName; color: string; bg: string }> = {
   care: { name: "heart", color: colors.danger, bg: colors.dangerSoft },
   fitness: { name: "walk", color: colors.success, bg: colors.successSoft },
   chores: { name: "checkbox", color: "#8A5A00", bg: colors.warnSoft },
+  study: { name: "school", color: colors.primary, bg: colors.primarySoft },
   checkin: { name: "shield-checkmark", color: colors.danger, bg: colors.dangerSoft },
 };
 
