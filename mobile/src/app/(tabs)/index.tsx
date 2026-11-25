@@ -11,6 +11,7 @@ import { useAuth } from "../../auth";
 import { APP_NAME } from "../../config";
 import { useNotifications } from "../../hooks";
 import { SosBanner } from "../../components/SosBanner";
+import { HomeMemories } from "../../components/Memories";
 import { haptic } from "../../haptics";
 import { pickAndUpload } from "../../media";
 import { Text } from "../../components/Text";
@@ -219,7 +220,7 @@ export default function Home() {
         <FlatList
           data={feed.data?.items ?? []}
           keyExtractor={p => p.id}
-          ListHeaderComponent={<View style={{ marginBottom: 10 }}><SosBanner /><Stories /></View>}
+          ListHeaderComponent={<View style={{ marginBottom: 10 }}><SosBanner /><Stories /><HomeMemories /></View>}
           renderItem={({ item }) => <PostCard post={item} />}
           ListEmptyComponent={<Welcome name={first} />}
           ListFooterComponent={(feed.data?.items.length ?? 0) > 0 ? <Button title="Share a moment" icon="camera" variant="soft" onPress={() => router.navigate("/camera")} style={{ marginHorizontal: 16, marginTop: 4 }} /> : undefined}

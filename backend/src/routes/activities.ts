@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db";
 import { HttpError, assertInCircle, canView, circleIdsOf, parse, publicUser, pulse, wrap } from "../util";
 import { blockedIds } from "./moderation";
+import { afterWorkout, sharedDistanceThisWeek } from "./challenges";
 
 export const activitiesRouter = Router();
 
@@ -53,6 +54,7 @@ activitiesRouter.post("/activities", wrap(async (req, res) => {
   const kmh = (b.distanceM / 1000) / (b.durationSec / 3600);
   if (kmh > k.maxKmh) throw new HttpError(400, `That's too fast for a ${k.label} (${kmh.toFixed(1)} km/h). Was the phone in a vehicle?`);
 
+  const before = b.shared ? await sharedDistanceThisWeek(req.userId) : 0;
   const a = await prisma.activity.create({
     data: {
       userId: req.userId, kind: b.kind, title: b.title || null, note: b.note || null, startedAt: started,
@@ -62,6 +64,7 @@ activitiesRouter.post("/activities", wrap(async (req, res) => {
     },
   });
   if (a.shared) await pulse(req.userId, "completed", `finished a ${(a.distanceM / 1000).toFixed(1)} km ${k.label}`);
+  await afterWorkout(req.userId, a.shared ? before : Number.MAX_SAFE_INTEGER).catch(e => console.warn("[challenges] update failed:", (e as Error).message));
   res.status(201).json(out(a));
 }));
 

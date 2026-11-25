@@ -18,6 +18,13 @@ const ICON: Record<string, { name: IconName; color: string; bg: string }> = {
   doctor: { name: "medical", color: colors.success, bg: colors.successSoft },
   home: { name: "home", color: colors.success, bg: colors.successSoft },
   system: { name: "sparkles", color: colors.warn, bg: colors.warnSoft },
+  event: { name: "calendar", color: colors.primary, bg: colors.primarySoft },
+  nudge: { name: "sparkles", color: colors.warn, bg: colors.warnSoft },
+  memory: { name: "images", color: "#E0559A", bg: "#FDE7F1" },
+  care: { name: "heart", color: colors.danger, bg: colors.dangerSoft },
+  fitness: { name: "walk", color: colors.success, bg: colors.successSoft },
+  chores: { name: "checkbox", color: "#8A5A00", bg: colors.warnSoft },
+  checkin: { name: "shield-checkmark", color: colors.danger, bg: colors.dangerSoft },
 };
 
 export default function Notifications() {

@@ -1,20 +1,20 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../db";
-import { HttpError, assertInCircle, parse, publicUser, pulse, today, wrap } from "../util";
+import { HttpError, assertInCircle, parse, publicUser, pulse, wrap } from "../util";
 
 export const dayRouter = Router();
 
 // Tasks repeat daily: reset progress when the stored date is not today.
-async function resetStale(userId: string) {
+async function resetStale(userId: string, day: string) {
   await prisma.task.updateMany({
-    where: { userId, OR: [{ doneDate: null }, { doneDate: { not: today() } }] },
-    data: { doneCount: 0, doneDate: today() },
+    where: { userId, OR: [{ doneDate: null }, { doneDate: { not: day } }] },
+    data: { doneCount: 0, doneDate: day },
   });
 }
 
 dayRouter.get("/tasks", wrap(async (req, res) => {
-  await resetStale(req.userId);
+  await resetStale(req.userId, req.today);
   const tasks = await prisma.task.findMany({ where: { userId: req.userId }, orderBy: { createdAt: "asc" } });
   res.json({
     items: tasks.map(t => ({ ...t, done: t.doneCount >= t.targetCount })),
@@ -30,12 +30,12 @@ dayRouter.post("/tasks", wrap(async (req, res) => {
     dueTime: z.string().optional(),
     targetCount: z.number().int().min(1).default(1),
   }), req.body);
-  const t = await prisma.task.create({ data: { ...b, userId: req.userId, doneDate: today() } });
+  const t = await prisma.task.create({ data: { ...b, userId: req.userId, doneDate: req.today } });
   res.status(201).json(t);
 }));
 
 dayRouter.post("/tasks/:id/done", wrap(async (req, res) => {
-  await resetStale(req.userId);
+  await resetStale(req.userId, req.today);
   const t = await prisma.task.findFirst({ where: { id: req.params.id, userId: req.userId } });
   if (!t) throw new HttpError(404, "Task not found");
   if (t.doneCount >= t.targetCount) return res.json({ ...t, done: true });

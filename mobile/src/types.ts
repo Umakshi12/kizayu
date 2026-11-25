@@ -88,3 +88,33 @@ export interface WorkoutDetail extends FeedWorkout { route: [number, number][] }
 export interface FitnessTotals { count: number; distanceM: number; durationSec: number; calories: number; steps: number }
 export interface FitnessSummary { week: FitnessTotals; today: FitnessTotals; days: { date: string; distanceM: number }[] }
 export interface LeaderRow { user: PublicUser; count: number; distanceM: number; durationSec: number; steps: number }
+
+// ---- family hub
+export interface HabitDay { date: string; count: number; done: boolean }
+export interface Habit {
+  id: string; title: string; icon: string; target: number; remindAt: string | null;
+  todayCount: number; doneToday: boolean; streak: number; best: number; last7: HabitDay[];
+}
+export interface CheckIn { id: string; dueAt: string; note: string | null; status: "active" | "safe" | "alerted"; createdAt: string }
+export interface FamilyEvent {
+  id: string; circleId: string; circleName: string; title: string; notes: string | null; kind: "event" | "birthday" | "anniversary";
+  allDay: boolean; repeat: "none" | "yearly"; startsAt: string; createdById: string | null; myRsvp: "yes" | "maybe" | "no" | null;
+  going: PublicUser[]; maybe: PublicUser[]; no: PublicUser[];
+}
+export interface ChallengeStanding { user: PublicUser; value: number; done: boolean }
+export interface Challenge {
+  id: string; title: string; metric: "distance" | "workouts"; target: number; startsAt: string; endsAt: string; createdById: string | null;
+  active: boolean; standings: ChallengeStanding[]; mine: number;
+}
+export interface Badge { id: string; title: string; desc: string; icon: string; value: number; goal: number; earned: boolean }
+export interface Chore { id: string; title: string; points: number; repeat: "once" | "daily" | "weekly"; assignee: PublicUser | null; myStatus: "pending" | "approved" | "rejected" | null; canDo: boolean }
+export interface ChoreBoard {
+  isOwner: boolean; chores: Chore[]; rewards: { id: string; title: string; cost: number }[];
+  balances: { user: PublicUser; role: string; points: number }[]; myPoints: number;
+  pending: { id: string; title: string; points: number; user: PublicUser | null; date: string }[];
+  claims: { id: string; title: string; cost: number; user: PublicUser | null }[];
+}
+export interface AlbumSummary { id: string; title: string; count: number; cover: string | null; createdAt: string }
+export interface AlbumDetail { id: string; title: string; createdById: string | null; photos: { id: string; url: string; caption: string | null; createdAt: string; by: PublicUser | null }[] }
+export interface Memory { kind: "post" | "photo"; id: string; url: string; text: string | null; yearsAgo: number; by: string | null }
+export type NotifyPrefs = Record<"chat" | "comments" | "events" | "care" | "nudges" | "fitness" | "chores", boolean>;

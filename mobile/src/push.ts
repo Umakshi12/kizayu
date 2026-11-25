@@ -63,6 +63,13 @@ export function routeFor(data: Record<string, unknown> | undefined): string | nu
     case "post": return d.postId ? `/post/${d.postId}` : null;
     case "safety": return "/safety";
     case "my-day": return "/my-day";
+    case "/": return "/";
+    case "/calendar": return "/calendar";
+    case "/chores": return "/chores";
+    case "/fitness": return "/fitness";
+    case "/albums": return "/albums";
+    case "/safety": return "/safety";
+    case "/health": return "/health/me";
     case "sos": return "/"; // Home shows the SOS banner with the live link
     case "health": return "/health/me";
     case "doctor-chat": return d.doctorId ? `/doctor-chat/${d.doctorId}` : null;

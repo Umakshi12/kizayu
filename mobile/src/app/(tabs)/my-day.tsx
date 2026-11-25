@@ -6,6 +6,7 @@ import { showAlert } from "../../alert";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { get, post } from "../../api";
+import { HabitsSection } from "../../components/Habits";
 import { Button, Card, Empty, ErrorView, Field, GradientCard, Header, IconButton, IconName, IconTile, Loading, Pill, Screen, SectionHeader, fmtWhen } from "../../components/ui";
 import { colors, gradients, radius } from "../../theme";
 import { haptic } from "../../haptics";
@@ -207,6 +208,8 @@ export default function MyDay() {
           tasks.data!.items.map(t => (
             <TaskRow key={t.id} task={t} onDone={() => done.mutate(t.id)} busy={done.isPending && done.variables === t.id} />
           ))}
+
+        <HabitsSection />
 
         <SectionHeader title="Upcoming" action="Add" onAction={() => setAddingAppt(true)} />
         {appts.isLoading ? <Loading rows={1} /> : upcoming.length === 0 ? (

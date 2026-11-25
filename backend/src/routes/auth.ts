@@ -164,13 +164,14 @@ authRouter.post("/me/delete", requireAuth, wrap(async (req, res) => {
   const u = await prisma.user.findUniqueOrThrow({ where: { id: req.userId } });
   if (u.passwordHash && !(b.password && (await bcrypt.compare(b.password, u.passwordHash)))) throw new HttpError(400, "Password is incorrect");
 
-  const [posts, stories, messages, sosClips] = await Promise.all([
+  const [posts, stories, messages, sosClips, albumPhotos] = await Promise.all([
     prisma.post.findMany({ where: { authorId: u.id }, select: { imageUrl: true } }),
     prisma.story.findMany({ where: { authorId: u.id }, select: { imageUrl: true } }),
     prisma.message.findMany({ where: { userId: u.id }, select: { imageUrl: true } }),
     prisma.sosClip.findMany({ where: { event: { userId: u.id } }, select: { url: true } }),
+    prisma.albumPhoto.findMany({ where: { uploadedById: u.id }, select: { url: true } }),
   ]);
-  const files = [...posts.map(x => x.imageUrl), ...stories.map(x => x.imageUrl), ...messages.map(x => x.imageUrl), ...sosClips.map(x => x.url)].concat(u.avatarUrl?.includes("/uploads/") ? [u.avatarUrl] : []);
+  const files = [...posts.map(x => x.imageUrl), ...stories.map(x => x.imageUrl), ...messages.map(x => x.imageUrl), ...sosClips.map(x => x.url), ...albumPhotos.map(x => x.url)].concat(u.avatarUrl?.includes("/uploads/") ? [u.avatarUrl] : []);
 
   await prisma.$transaction(async tx => {
     const owned = await tx.circleMember.findMany({ where: { userId: u.id, role: "owner" } });
@@ -179,6 +180,7 @@ authRouter.post("/me/delete", requireAuth, wrap(async (req, res) => {
       if (next) await tx.circleMember.update({ where: { id: next.id }, data: { role: "owner" } });
       else await tx.circle.delete({ where: { id: m.circleId } });
     }
+    await tx.albumPhoto.deleteMany({ where: { uploadedById: u.id } });
     const targets = [u.email, u.phone].filter((t): t is string => !!t);
     if (targets.length) await tx.verificationCode.deleteMany({ where: { target: { in: targets } } });
     await tx.user.delete({ where: { id: u.id } }); // cascades to all personal data

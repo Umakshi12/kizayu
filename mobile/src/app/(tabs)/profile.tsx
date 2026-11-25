@@ -55,6 +55,7 @@ export default function Profile() {
   ];
   const account: Row[] = [
     { icon: "notifications", tint: colors.primary, bg: colors.primarySoft, title: "Notifications", href: "/notifications", badge: notifications.data?.unread },
+    { icon: "options", tint: colors.muted, bg: "#EEEDF3", title: "Notification settings", sub: "Choose what reaches you", href: "/notification-settings" },
     { icon: "lock-closed", tint: colors.text, bg: "#EEEDF3", title: "Account & Security", sub: user.hasPassword ? "Password, email, phone" : "Add a password", href: "/account" },
     user.doctorId
       ? { icon: "medkit", tint: colors.success, bg: colors.successSoft, title: "Patient messages", sub: "Your doctor inbox", href: "/doctor-inbox" }

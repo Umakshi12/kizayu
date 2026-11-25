@@ -51,6 +51,13 @@ model User {
   sosContacts   SosContact[]
   sosEvents     SosEvent[]
   activities    Activity[]
+  tzOffsetMin   Int      @default(0)  // minutes behind UTC, as JS getTimezoneOffset() reports (India = -330); set by the app
+  nudgeDate     String?              // last local day the evening "still pending" nudge was sent
+  memoryDate    String?              // last local day an "on this day" nudge was sent
+  habits        Habit[]
+  checkIns      CheckIn[]
+  notifyPrefs   NotifyPrefs?
+  rsvps         EventRsvp[]
   blocking      Block[]        @relation("Blocker")
   blockedBy     Block[]        @relation("Blocked")
 }
@@ -78,6 +85,11 @@ model Circle {
   pulse      PulseEvent[]
   messages   Message[]
   lists       SharedList[]
+  events      FamilyEvent[]
+  challenges  Challenge[]
+  chores      Chore[]
+  rewards     Reward[]
+  albums      Album[]
 }
 
 model CircleMember {
@@ -152,6 +164,8 @@ model Appointment {
   title    String
   kind     String   @default("doctor") // doctor | call | other
   startsAt DateTime
+  notified1d Boolean @default(false)
+  notified1h Boolean @default(false)
   user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -184,6 +198,7 @@ model Medication {
   name      String
   schedule  String
   remindAt  String?   // "HH:MM" (24h): the app schedules a daily reminder at this time
+  missedDate String?  // last local day the family was told this dose was missed
   takenDate String?
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -463,4 +478,185 @@ model Activity {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId, startedAt])
   @@index([startedAt])
+}
+
+// ---------------------------------------------------------------- notification preferences
+model NotifyPrefs {
+  userId   String  @id
+  chat     Boolean @default(true)
+  comments Boolean @default(true)
+  events   Boolean @default(true)  // calendar invites + reminders
+  care     Boolean @default(true)  // missed-medicine and arrived-home alerts about family
+  nudges   Boolean @default(true)  // evening "still pending" + "on this day"
+  fitness  Boolean @default(true)  // challenges + "passed you"
+  chores   Boolean @default(true)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------- daily habits
+model Habit {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  icon      String   @default("star")
+  target    Int      @default(1)  // times per day
+  remindAt  String?  // "HH:MM" local; the app schedules a daily phone reminder
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs      HabitLog[]
+  @@index([userId])
+}
+
+model HabitLog {
+  id      String @id @default(cuid())
+  habitId String
+  date    String // the user's local day, "YYYY-MM-DD"
+  count   Int    @default(1)
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  @@unique([habitId, date])
+}
+
+// ---------------------------------------------------------------- safe-walk check-ins
+model CheckIn {
+  id         String    @id @default(cuid())
+  userId     String
+  dueAt      DateTime
+  note       String?
+  lat        Float?
+  lng        Float?
+  status     String    @default("active") // active | safe | alerted
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([status, dueAt])
+}
+
+// ---------------------------------------------------------------- family calendar
+model FamilyEvent {
+  id             String    @id @default(cuid())
+  circleId       String
+  createdById    String?
+  title          String
+  notes          String?
+  kind           String    @default("event")  // event | birthday | anniversary
+  startsAt       DateTime
+  allDay         Boolean   @default(false)
+  repeat         String    @default("none")   // none | yearly
+  notified1dFor  DateTime? // the occurrence the 1-day reminder was last sent for
+  notified1hFor  DateTime? // the occurrence the 1-hour reminder was last sent for
+  createdAt      DateTime  @default(now())
+  circle         Circle    @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  rsvps          EventRsvp[]
+  @@index([circleId, startsAt])
+}
+
+model EventRsvp {
+  eventId String
+  userId  String
+  status  String // yes | maybe | no
+  event   FamilyEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([eventId, userId])
+}
+
+// ---------------------------------------------------------------- family challenges
+model Challenge {
+  id          String   @id @default(cuid())
+  circleId    String
+  createdById String?
+  title       String
+  metric      String   // distance (metres) | workouts (count)
+  target      Int
+  startsAt    DateTime
+  endsAt      DateTime
+  createdAt   DateTime @default(now())
+  circle      Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  wins        ChallengeWin[]
+  @@index([circleId, endsAt])
+}
+
+model ChallengeWin {
+  challengeId String
+  userId      String
+  at          DateTime  @default(now())
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  @@id([challengeId, userId])
+}
+
+// ---------------------------------------------------------------- chores and rewards
+model Chore {
+  id          String   @id @default(cuid())
+  circleId    String
+  title       String
+  points      Int
+  assigneeId  String?
+  createdById String?
+  repeat      String   @default("daily") // once | daily | weekly
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  circle      Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  dones       ChoreDone[]
+  @@index([circleId])
+}
+
+model ChoreDone {
+  id           String   @id @default(cuid())
+  choreId      String
+  userId       String
+  date         String   // local day, "YYYY-MM-DD"
+  status       String   @default("pending") // pending | approved | rejected
+  approvedById String?
+  points       Int
+  createdAt    DateTime @default(now())
+  chore        Chore    @relation(fields: [choreId], references: [id], onDelete: Cascade)
+  @@unique([choreId, userId, date])
+  @@index([userId])
+}
+
+model Reward {
+  id          String   @id @default(cuid())
+  circleId    String
+  title       String
+  cost        Int
+  createdById String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  circle      Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  claims      RewardClaim[]
+  @@index([circleId])
+}
+
+model RewardClaim {
+  id        String   @id @default(cuid())
+  rewardId  String
+  userId    String
+  cost      Int
+  status    String   @default("pending") // pending | given
+  createdAt DateTime @default(now())
+  reward    Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------- photo albums
+model Album {
+  id          String   @id @default(cuid())
+  circleId    String
+  title       String
+  createdById String?
+  createdAt   DateTime @default(now())
+  circle      Circle   @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  photos      AlbumPhoto[]
+  @@index([circleId])
+}
+
+model AlbumPhoto {
+  id           String   @id @default(cuid())
+  albumId      String
+  url          String
+  caption      String?
+  uploadedById String?
+  createdAt    DateTime @default(now())
+  album        Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  @@index([albumId])
 }

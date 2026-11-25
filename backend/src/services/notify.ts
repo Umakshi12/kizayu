@@ -9,12 +9,20 @@ export const userRoom = (userId: string) => `user:${userId}`;
 export interface NotifyInput {
   /** Who caused it. People who blocked this user don't get the notification. */
   from?: string;
-  kind: "chat" | "sos" | "comment" | "doctor" | "home" | "system";
+  kind: "chat" | "sos" | "comment" | "doctor" | "home" | "system" | "event" | "nudge" | "care" | "fitness" | "chores" | "checkin" | "memory";
   title: string;
   body: string;
   data?: Record<string, string>;
   urgent?: boolean;
 }
+
+/**
+ * Which preference switch controls each kind of notification. SOS, check-in, doctor and system messages are safety or
+ * direct messages and can't be switched off.
+ */
+export const PREF_FOR_KIND: Partial<Record<NotifyInput["kind"], "chat" | "comments" | "events" | "care" | "nudges" | "fitness" | "chores">> = {
+  chat: "chat", comment: "comments", event: "events", care: "care", home: "care", nudge: "nudges", memory: "nudges", fitness: "fitness", chores: "chores",
+};
 
 /**
  * Notify users: stores an in-app notification, emits it over the socket, and sends an Expo push
@@ -25,6 +33,12 @@ export async function notify(userIds: string[], n: NotifyInput) {
   if (n.from) {
     const blockers = new Set((await prisma.block.findMany({ where: { blockedId: n.from, blockerId: { in: ids } }, select: { blockerId: true } })).map(b => b.blockerId));
     ids = ids.filter(id => !blockers.has(id));
+  }
+  const pref = PREF_FOR_KIND[n.kind];
+  if (pref && ids.length) {
+    const off = await prisma.notifyPrefs.findMany({ where: { userId: { in: ids }, [pref]: false } as never, select: { userId: true } });
+    const offSet = new Set(off.map(o => o.userId));
+    ids = ids.filter(id => !offSet.has(id));
   }
   if (!ids.length) return;
   const data = JSON.stringify(n.data ?? {});

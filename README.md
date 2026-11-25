@@ -80,6 +80,13 @@ in a yellow "Dev mode" box. This never happens in production.
 | SOS | 5-second cancel countdown, then urgent alerts to your circles and an SMS with a private link to up to 5 SOS contacts (no app needed). With recording turned on (opt-in, with a disclosure), the phone records video and audio in 15-second clips and uploads each one as it finishes, so contacts see near-live video, audio and a live map on the link page. Recordings are deleted after 30 days |
 | Family lists | Shared grocery, to-do and packing lists for a circle: everyone adds and ticks items, and changes appear live for the others |
 | Emergency card | A medical ID: blood group, allergies and conditions as chips, notes for a helper, and up to 5 emergency contacts with a one-tap Call button. Family cards expand to show the same. Visible to people in your circles. The contacts are the same list that gets texted during an SOS |
+| Daily habits | Make your own habits (drink water 6 times, walk, read, call family), tick them off on My Day, and watch the streak grow. Optional phone reminder at a time you choose. Yesterday can be caught up, older days can't be edited |
+| Safe walk | Set a 15 minute to 2 hour timer before you walk home or travel. Tap I'm safe when you arrive. If you don't, the server alerts your circles (and texts your emergency contacts when SMS is on) with your last known place. It works even if the phone switches off, because the alert comes from the server |
+| Family calendar | Events, birthdays and anniversaries (these repeat every year, leap days land on 28 Feb). Everyone is reminded the day before and an hour before, and can answer Going, Maybe or Can't |
+| Challenges and badges | Start a distance or workouts challenge for a circle (3 to 30 days). Progress comes from shared workouts only. Finishing is celebrated, and you're told when someone passes you on the weekly board. Eight badges are worked out from what you've actually done |
+| Chores and rewards | Parents add chores with points. Kids tick them off, a parent approves, points are earned. Points are spent on rewards parents define; a parent marks the reward as given. Points are never created without a parent's approval |
+| Photo albums and memories | Shared albums per circle, and an On this day strip (and a 9 AM nudge) with photos and posts from earlier years. Shows nothing when there are no memories |
+| Smart reminders | Evening nudge (7 to 9 PM, once a day) when tasks or habits are still open, a family alert when a medicine is an hour overdue, and 1 day and 1 hour reminders for appointments. Every category can be switched off in Notification settings (safety alerts can't be) |
 | Games | Ludo (2 to 4 players, family or computer), Word Hunt, Trivia, Memory Match, family leaderboards |
 | Premium | Plans, free-tier limits, test purchases, cancel (stays active until the period ends) |
 | Help & About | FAQ, contact-support form with your past requests, About page, Terms and Privacy drafts |
@@ -109,6 +116,12 @@ restyle the whole app.
 
 - Workouts are tracked with the phone's GPS while Kizayu is open on screen (the screen is kept awake). Tracking in the background would need extra Google Play approval.
 - All-day step counting (like a pedometer) isn't included. Phones only hand that data to apps through Health Connect (Android) or Apple Health, which needs a separate native setup and a health-data declaration on Google Play. Steps shown for walks and runs are estimated from distance.
+
+### Reminders and "today"
+
+- The phone tells the server its timezone every time the app opens, so "today", habit streaks, the evening nudge and morning memories all use the person's own day.
+- A background scheduler on the server runs every minute (appointments, calendar, missed medicine, safe-walk timers, nudges, memories). Each job claims its work atomically, so a restart or a second server never sends the same message twice.
+- Push messages reach Android phones only after Firebase (FCM) is set up for the app. Until then every alert is still saved in the in-app notification list and arrives live while the app is open.
 
 ### SOS limits worth knowing
 

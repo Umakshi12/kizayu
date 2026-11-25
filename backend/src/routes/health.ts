@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../db";
-import { HttpError, canView, parse, pulse, today, wrap } from "../util";
+import { HttpError, canView, parse, pulse, wrap } from "../util";
+import { dayOfUser } from "../services/time";
 import { limitsFor } from "../services/premium";
 
 export const healthRouter = Router();
@@ -23,13 +24,14 @@ healthRouter.get("/health/:userId", wrap(async (req, res) => {
   const vitals = await Promise.all(VITAL_TYPES.map(type =>
     prisma.vital.findFirst({ where: { userId, type }, orderBy: { recordedAt: "desc" } })));
   const meds = await prisma.medication.findMany({ where: { userId }, orderBy: { name: "asc" } });
+  const day = await dayOfUser(userId); // taken-today is judged in that person's own day
   const next = await prisma.appointment.findFirst({
     where: { userId, kind: "doctor", startsAt: { gte: new Date() } }, orderBy: { startsAt: "asc" },
   });
   res.json({
     user,
     vitals: vitals.filter(Boolean),
-    medications: meds.map(m => ({ id: m.id, name: m.name, schedule: m.schedule, remindAt: m.remindAt, taken: m.takenDate === today() })),
+    medications: meds.map(m => ({ id: m.id, name: m.name, schedule: m.schedule, remindAt: m.remindAt, taken: m.takenDate === day })),
     nextAppointment: next,
   });
 }));
@@ -61,7 +63,7 @@ healthRouter.post("/health/medications", wrap(async (req, res) => {
 healthRouter.post("/health/medications/:id/take", wrap(async (req, res) => {
   const m = await prisma.medication.findFirst({ where: { id: req.params.id, userId: req.userId } });
   if (!m) throw new HttpError(404, "Medication not found");
-  const u = await prisma.medication.update({ where: { id: m.id }, data: { takenDate: today() } });
+  const u = await prisma.medication.update({ where: { id: m.id }, data: { takenDate: req.today } });
   await pulse(req.userId, "completed", `took ${m.name}`);
   res.json({ id: u.id, taken: true });
 }));

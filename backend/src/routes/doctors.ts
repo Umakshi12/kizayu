@@ -2,7 +2,8 @@ import { Router } from "express";
 import type { Server } from "socket.io";
 import { z } from "zod";
 import { prisma } from "../db";
-import { HttpError, canView, parse, publicUser, today, wrap } from "../util";
+import { HttpError, canView, parse, publicUser, wrap } from "../util";
+import { dayOfUser } from "../services/time";
 import { notify, userRoom } from "../services/notify";
 
 export const doctorsRouter = Router();
@@ -190,5 +191,6 @@ doctorsRouter.get("/doctor-portal/patients/:patientId/health", wrap(async (req, 
     prisma.medication.findMany({ where: { userId } }),
     prisma.healthRecord.findMany({ where: { userId }, orderBy: { createdAt: "desc" } }),
   ]);
-  res.json({ user, vitals, medications: meds.map(m => ({ id: m.id, name: m.name, schedule: m.schedule, taken: m.takenDate === today() })), records });
+  const day = await dayOfUser(userId);
+  res.json({ user, vitals, medications: meds.map(m => ({ id: m.id, name: m.name, schedule: m.schedule, taken: m.takenDate === day })), records });
 }));

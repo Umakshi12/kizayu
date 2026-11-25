@@ -695,6 +695,292 @@ async function main() {
   check("delete my workout", (await call("DELETE", `/activities/${w3.data.id}`, t)).status === 204);
   check("a deleted workout is gone", (await call("GET", `/activities/${w3.data.id}`, t)).status === 404);
 
+  // =================================================================== family hub: timezone, prefs, habits, scheduler
+  section = "hub";
+  check("timezone must be a sane number", (await call("PUT", "/prefs/timezone", t, { offsetMin: 5000 })).status === 400);
+  check("the app can report its timezone", (await call("PUT", "/prefs/timezone", t, { offsetMin: -330 })).status === 200);
+  const prefs0 = await call("GET", "/prefs/notifications", t);
+  check("every notification category is on by default", prefs0.data.chat === true && prefs0.data.nudges === true && prefs0.data.chores === true, prefs0.data);
+  check("I can switch a category off", (await call("PUT", "/prefs/notifications", t, { nudges: false })).data.nudges === false && (await call("GET", "/prefs/notifications", t)).data.nudges === false);
+  await call("PUT", "/prefs/notifications", t, { nudges: true });
+
+  const ist = (d = new Date()) => new Date(d.getTime() + 330 * 60_000).toISOString().slice(0, 10);
+  const dayShift = (n: number) => new Date(Date.parse(ist() + "T00:00:00Z") + n * 86400e3).toISOString().slice(0, 10);
+  const h1 = await call("POST", "/habits", t, { title: "Drink water", icon: "water", target: 2, remindAt: "09:30" });
+  check("create a habit", h1.status === 201 && h1.data.target === 2 && h1.data.remindAt === "09:30" && h1.data.streak === 0, h1.data);
+  check("a habit needs a title", (await call("POST", "/habits", t, { title: "  " })).status === 400);
+  check("habit reminder time must be HH:MM", (await call("POST", "/habits", t, { title: "x", remindAt: "9am" })).status === 400);
+  check("habit icon must be one we know", (await call("POST", "/habits", t, { title: "x", icon: "bomb" })).status === 400);
+  const hc1 = await call("POST", `/habits/${h1.data.id}/check`, t, {});
+  check("first tick counts 1 of 2", hc1.data.todayCount === 1 && !hc1.data.doneToday && hc1.data.streak === 0, hc1.data);
+  const hc2 = await call("POST", `/habits/${h1.data.id}/check`, t, {});
+  check("second tick completes it and starts a streak", hc2.data.doneToday && hc2.data.streak === 1 && hc2.data.last7[6].done && hc2.data.last7[6].date === ist(), hc2.data);
+  const hc3 = await call("POST", `/habits/${h1.data.id}/check`, t, {});
+  check("extra ticks don't go past the target", hc3.data.todayCount === 2);
+  await call("POST", `/habits/${h1.data.id}/check`, t, { date: dayShift(-1) });
+  const cy = await call("POST", `/habits/${h1.data.id}/check`, t, { date: dayShift(-1) });
+  check("yesterday can be caught up and extends the streak", cy.data.streak === 2 && cy.data.best === 2, cy.data);
+  check("older days can't be edited", (await call("POST", `/habits/${h1.data.id}/check`, t, { date: dayShift(-2) })).status === 400);
+  check("future days can't be edited", (await call("POST", `/habits/${h1.data.id}/check`, t, { date: dayShift(1) })).status === 400);
+  const u1 = await call("POST", `/habits/${h1.data.id}/check`, t, { undo: true });
+  check("undo steps back and the streak waits for today", u1.data.todayCount === 1 && !u1.data.doneToday && u1.data.streak === 1, u1.data);
+  check("someone else can't tick my habit", (await call("POST", `/habits/${h1.data.id}/check`, mom.token, {})).status === 404);
+  check("someone else doesn't see my habits", (await call("GET", "/habits", mom.token)).data.length === 0);
+  const hp = await call("PATCH", `/habits/${h1.data.id}`, t, { title: "Water", remindAt: null });
+  check("edit a habit and clear its reminder", hp.data.title === "Water" && hp.data.remindAt === null, hp.data);
+  check("habit list shows it", (await call("GET", "/habits", t)).data.length === 1);
+  for (let i = 0; i < 11; i++) await call("POST", "/habits", t, { title: "H" + i });
+  check("habits are capped at 12", (await call("POST", "/habits", t, { title: "one too many" })).status === 400);
+  const arch = await call("PATCH", `/habits/${h1.data.id}`, t, { archived: true });
+  check("archiving hides a habit and frees a slot", arch.status === 200 && (await call("GET", "/habits", t)).data.length === 11 && (await call("POST", "/habits", t, { title: "fits now" })).status === 201);
+  check("delete a habit", (await call("DELETE", `/habits/${h1.data.id}`, t)).status === 204 && (await call("DELETE", `/habits/${h1.data.id}`, t)).status === 404);
+  await prisma.habit.deleteMany({ where: { userId: demo.user.id } });
+  check("a streak is counted across consecutive days only", await (async () => {
+    const { streakOf, bestStreakOf } = await import("./routes/habits");
+    const logs = ["2026-11-20", "2026-11-21", "2026-11-23", "2026-11-24"].map(date => ({ date, count: 1 }));
+    return streakOf(logs, 1, "2026-11-24") === 2 && streakOf(logs, 1, "2026-11-25") === 2 && streakOf(logs, 1, "2026-11-26") === 0 && bestStreakOf(logs, 1) === 2 && streakOf([{ date: "2026-11-24", count: 1 }], 2, "2026-11-24") === 0;
+  })());
+
+  const sched = await import("./services/scheduler");
+  const notesOf = (userId: string, kind: string) => prisma.notification.findMany({ where: { userId, kind }, orderBy: { createdAt: "desc" } });
+  const T0 = new Date("2026-11-25T10:00:00Z"); // 15:30 for a user at UTC+5:30
+
+  // appointment reminders
+  await prisma.appointment.deleteMany({ where: { userId: demo.user.id } });
+  const apSoon = await prisma.appointment.create({ data: { userId: demo.user.id, title: "Dr Rao", startsAt: new Date(T0.getTime() + 40 * 60_000) } });
+  const apTmrw = await prisma.appointment.create({ data: { userId: demo.user.id, title: "Eye test", startsAt: new Date(T0.getTime() + 20 * 3600e3) } });
+  const apFar = await prisma.appointment.create({ data: { userId: demo.user.id, title: "Dentist", startsAt: new Date(T0.getTime() + 5 * 86400e3) } });
+  const apPast = await prisma.appointment.create({ data: { userId: demo.user.id, title: "Old visit", startsAt: new Date(T0.getTime() - 3600e3) } });
+  const nApp0 = (await notesOf(demo.user.id, "doctor")).length;
+  check("appointment reminders go out once, only for upcoming ones", (await sched.runAppointmentReminders(T0)) === 2 && (await sched.runAppointmentReminders(T0)) === 0);
+  const nApp = await notesOf(demo.user.id, "doctor");
+  check("an hour-away appointment says so, in the user's own time", nApp.length === nApp0 + 2 && nApp.some(n => n.title === "Coming up in an hour" && n.body === "Dr Rao at 4:10 PM"), nApp.slice(0, 2));
+  check("tomorrow's appointment gets a day-before reminder", nApp.some(n => n.title === "Appointment tomorrow" && n.body === "Eye test at 11:30 AM"), nApp.slice(0, 2));
+  check("far-off and past appointments are left alone", (await prisma.appointment.findMany({ where: { id: { in: [apFar.id, apPast.id] } } })).every(a => !a.notified1d && !a.notified1h) && !!apSoon && !!apTmrw);
+  await prisma.appointment.deleteMany({ where: { userId: demo.user.id } });
+
+  // missed medicine
+  await prisma.medication.deleteMany({ where: { userId: demo.user.id } });
+  const mLate = await prisma.medication.create({ data: { userId: demo.user.id, name: "Metformin", schedule: "1 a day", remindAt: "13:00" } });
+  const mTaken = await prisma.medication.create({ data: { userId: demo.user.id, name: "Vitamin C", schedule: "1 a day", remindAt: "13:00", takenDate: "2026-11-25" } });
+  const mSoon = await prisma.medication.create({ data: { userId: demo.user.id, name: "Calcium", schedule: "1 a day", remindAt: "15:00" } });
+  const mNone = await prisma.medication.create({ data: { userId: demo.user.id, name: "Iron", schedule: "as needed" } });
+  const nMom0 = (await notesOf(mom.user.id, "care")).length;
+  check("a dose that is an hour overdue alerts the family once", (await sched.runMissedMedicine(T0)) === 1 && (await sched.runMissedMedicine(T0)) === 0);
+  const nMom = await notesOf(mom.user.id, "care");
+  check("the family message names the person and the medicine", nMom.length === nMom0 + 1 && nMom[0].title.includes("Demo User") && nMom[0].body.includes("Metformin"), nMom[0]);
+  check("taken, not-yet-late and no-reminder medicines don't alert", !nMom[0].body.includes("Vitamin") && !nMom[0].body.includes("Calcium") && !!mTaken && !!mNone && (await prisma.medication.findUnique({ where: { id: mSoon.id } }))!.missedDate === null);
+  check("the same dose can alert again the next day", (await sched.runMissedMedicine(new Date(T0.getTime() + 86400e3))) >= 1 && !!mLate);
+  await prisma.medication.deleteMany({ where: { userId: demo.user.id } });
+
+  // evening nudge
+  await prisma.pushToken.upsert({ where: { token: "ExponentPushToken[demo-nudge]" }, update: {}, create: { token: "ExponentPushToken[demo-nudge]", userId: demo.user.id, platform: "android" } });
+  await prisma.task.deleteMany({ where: { userId: demo.user.id } });
+  await prisma.task.create({ data: { userId: demo.user.id, title: "Evening walk" } });
+  await call("POST", "/habits", t, { title: "Read" });
+  const EVE = new Date("2026-11-25T14:00:00Z"); // 19:30 local
+  await prisma.user.updateMany({ data: { nudgeDate: null } });
+  const nNudge0 = (await notesOf(demo.user.id, "nudge")).length;
+  check("nobody is nudged outside 7-9 PM", (await sched.runEveningNudges(T0)) === 0);
+  check("an evening nudge goes to people with open tasks", (await sched.runEveningNudges(EVE)) >= 1);
+  const nudges = await notesOf(demo.user.id, "nudge");
+  check("it counts open tasks and habits", nudges.length === nNudge0 + 1 && /1 task and 1 habit/.test(nudges[0].body), nudges[0]);
+  check("only one nudge per day", (await sched.runEveningNudges(EVE)) === 0);
+  await prisma.user.update({ where: { id: demo.user.id }, data: { nudgeDate: null } });
+  await call("PUT", "/prefs/notifications", t, { nudges: false });
+  await sched.runEveningNudges(EVE);
+  check("a person who switched nudges off doesn't get one", (await notesOf(demo.user.id, "nudge")).length === nNudge0 + 1);
+  await call("PUT", "/prefs/notifications", t, { nudges: true });
+  await prisma.user.update({ where: { id: demo.user.id }, data: { nudgeDate: null } });
+  await prisma.task.deleteMany({ where: { userId: demo.user.id } });
+  await prisma.habit.deleteMany({ where: { userId: demo.user.id } });
+  check("nothing open means no nudge", (await sched.runEveningNudges(EVE)) === 0);
+  await prisma.pushToken.delete({ where: { token: "ExponentPushToken[demo-nudge]" } });
+  await call("PUT", "/prefs/timezone", t, { offsetMin: 0 });
+
+  // =================================================================== family hub: check-ins, calendar, challenges, chores, albums
+  const hub = await prisma.circle.create({ data: { name: "Hub test", type: "Family", members: { create: [{ userId: demo.user.id, role: "owner" }, { userId: mom.user.id, role: "member" }, { userId: dad.user.id, role: "member" }] } } });
+  const kid = mom.token, parent = t;
+  const hubNotes = (userId: string, kind: string) => prisma.notification.findMany({ where: { userId, kind }, orderBy: { createdAt: "desc" } });
+
+  // ---- safe-walk check-in
+  section = "checkin";
+  check("a check-in needs at least 5 minutes", (await call("POST", "/checkin", kid, { minutes: 1 })).status === 400);
+  const ck = await call("POST", "/checkin", kid, { minutes: 30, note: "Walking home", lat: 12.97, lng: 77.59 });
+  check("start a safe-walk timer", ck.status === 201 && ck.data.status === "active" && new Date(ck.data.dueAt).getTime() > Date.now() + 29 * 60_000, ck.data);
+  check("only one timer at a time", (await call("POST", "/checkin", kid, { minutes: 10 })).status === 409);
+  check("I can see my running timer", (await call("GET", "/checkin/active", kid)).data.id === ck.data.id && (await call("GET", "/checkin/active", parent)).data === null);
+  const ext = await call("POST", `/checkin/${ck.data.id}/extend`, kid, { minutes: 15 });
+  check("extending adds time", new Date(ext.data.dueAt).getTime() - new Date(ck.data.dueAt).getTime() === 15 * 60_000, ext.data);
+  check("nobody else can end my timer", (await call("POST", `/checkin/${ck.data.id}/safe`, parent, {})).status === 404);
+  const ckMod = await import("./routes/checkins");
+  check("nothing happens before the timer runs out", (await ckMod.runCheckIns(new Date())) === 0);
+  const aMom0 = (await hubNotes(demo.user.id, "checkin")).length;
+  const later = new Date(Date.now() + 60 * 60_000);
+  check("when it runs out the family is alerted once", (await ckMod.runCheckIns(later)) >= 1 && (await ckMod.runCheckIns(later)) === 0);
+  const alert = (await hubNotes(demo.user.id, "checkin"))[0];
+  check("the alert names the person and says when", (await hubNotes(demo.user.id, "checkin")).length === aMom0 + 1 && alert.title.includes("hasn't checked in") && /ended at/.test(alert.body) && alert.body.includes("Walking home"), alert);
+  check("after an alert the timer shows as alerted, so I can still say I'm safe", (await call("GET", "/checkin/active", kid)).data?.status === "alerted");
+  const nOk0 = (await hubNotes(demo.user.id, "checkin")).length;
+  check("saying 'I'm safe' after an alert works", (await call("POST", `/checkin/${ck.data.id}/safe`, kid, {})).data.status === "safe");
+  check("and tells the family it's fine", (await hubNotes(demo.user.id, "checkin")).length === nOk0 + 1 && (await hubNotes(demo.user.id, "checkin"))[0].title.includes("is safe"));
+  const ck2 = await call("POST", "/checkin", kid, { minutes: 20 });
+  check("marking safe in time cancels without any alert", (await call("POST", `/checkin/${ck2.data.id}/safe`, kid, {})).status === 200 && (await ckMod.runCheckIns(later)) === 0 && (await hubNotes(demo.user.id, "checkin")).length === nOk0 + 1);
+
+  // ---- calendar
+  section = "calendar";
+  const inDays = (n: number, h = 10) => new Date(Date.UTC(2026, 10, 25 + n, h, 0)).toISOString();
+  check("outsiders can't add events to my circle", (await call("POST", "/events", outsider, { circleId: hub.id, title: "x", startsAt: inDays(5) })).status === 403);
+  check("an event needs a title", (await call("POST", "/events", kid, { circleId: hub.id, title: " ", startsAt: inDays(5) })).status === 400);
+  const evA = await call("POST", "/events", kid, { circleId: hub.id, title: "Sunday lunch", startsAt: inDays(3), notes: "At Nani's" });
+  check("add an event", evA.status === 201);
+  check("the rest of the family hears about it", (await hubNotes(demo.user.id, "event")).some(n => n.body.startsWith("Sunday lunch")) && !(await hubNotes(mom.user.id, "event")).some(n => n.body.startsWith("Sunday lunch")));
+  const bday = await call("POST", "/events", parent, { circleId: hub.id, title: "Mom's birthday", kind: "birthday", startsAt: "1968-11-28T00:00:00.000Z", allDay: true });
+  check("a birthday repeats every year by itself", bday.status === 201 && (await prisma.familyEvent.findUnique({ where: { id: bday.data.id } }))!.repeat === "yearly");
+  const win = (a: string, b: string) => `from=${encodeURIComponent(a)}&to=${encodeURIComponent(b)}&circleId=${hub.id}`;
+  const list = await call("GET", `/events?${win(inDays(0), inDays(30))}`, dad.token);
+  check("yearly events show up in this year's window", list.data.length === 2 && list.data.some((e: any) => e.title === "Sunday lunch") && list.data.some((e: any) => e.title === "Mom's birthday" && e.startsAt.startsWith("2026-11-28")) && list.data[0].startsAt <= list.data[1].startsAt, list.data.map((e: any) => [e.title, e.startsAt]));
+  check("and again in next year's window", (await call("GET", `/events?${win("2027-11-01T00:00:00.000Z", "2027-12-31T00:00:00.000Z")}`, dad.token)).data.some((e: any) => e.title === "Mom's birthday" && e.startsAt.startsWith("2027-11-28")));
+  check("a window can't be absurdly long", (await call("GET", `/events?${win("2026-01-01T00:00:00.000Z", "2030-01-01T00:00:00.000Z")}`, dad.token)).status === 400);
+  check("outsiders can't see the calendar", (await call("GET", `/events?circleId=${hub.id}`, outsider)).status === 403);
+  check("a past one-off date is rejected", (await call("POST", "/events", kid, { circleId: hub.id, title: "old", startsAt: "2020-01-01T10:00:00.000Z" })).status === 400);
+  const nR0 = (await hubNotes(mom.user.id, "event")).length;
+  check("RSVP: going", (await call("PUT", `/events/${evA.data.id}/rsvp`, dad.token, { status: "yes" })).data.status === "yes");
+  check("the organiser is told", (await hubNotes(mom.user.id, "event")).length === nR0 + 1 && (await hubNotes(mom.user.id, "event"))[0].title.includes("going"));
+  await call("PUT", `/events/${evA.data.id}/rsvp`, dad.token, { status: "yes" });
+  check("repeating the same answer doesn't notify again", (await hubNotes(mom.user.id, "event")).length === nR0 + 1);
+  await call("PUT", `/events/${evA.data.id}/rsvp`, parent, { status: "maybe" });
+  const rsvpSeen = (await call("GET", `/events?${win(inDays(0), inDays(10))}`, dad.token)).data.find((e: any) => e.title === "Sunday lunch");
+  check("everyone's answers are listed, plus mine", rsvpSeen.going.length === 1 && rsvpSeen.maybe.length === 1 && rsvpSeen.myRsvp === "yes", rsvpSeen);
+  check("bad RSVP values are rejected", (await call("PUT", `/events/${evA.data.id}/rsvp`, dad.token, { status: "sure" })).status === 400);
+  check("outsiders can't RSVP", (await call("PUT", `/events/${evA.data.id}/rsvp`, outsider, { status: "yes" })).status === 404);
+  check("a member can't delete someone else's event", (await call("DELETE", `/events/${bday.data.id}`, dad.token)).status === 403);
+  check("an owner can edit anyone's event", (await call("PATCH", `/events/${evA.data.id}`, parent, { title: "Sunday brunch" })).status === 200);
+
+  const evMod = await import("./routes/events");
+  const hubEv = await prisma.familyEvent.create({ data: { circleId: hub.id, createdById: mom.user.id, title: "Movie night", startsAt: new Date("2026-12-10T14:00:00Z") } });
+  const nEv0 = (await hubNotes(dad.user.id, "event")).length;
+  check("no reminder when it's far away", (await evMod.runEventReminders(new Date("2026-12-05T14:00:00Z"))) === 0);
+  check("day-before reminder goes to everyone, once", (await evMod.runEventReminders(new Date("2026-12-09T20:00:00Z"))) === 1 && (await evMod.runEventReminders(new Date("2026-12-09T20:30:00Z"))) === 0 && (await hubNotes(dad.user.id, "event")).length === nEv0 + 1);
+  check("an hour-before reminder follows", (await evMod.runEventReminders(new Date("2026-12-10T13:30:00Z"))) === 1 && (await hubNotes(dad.user.id, "event"))[0].title.includes("within the hour"));
+  check("the birthday reminder fires the day before", (await evMod.runEventReminders(new Date("2026-11-27T12:00:00Z"))) >= 1 && (await hubNotes(dad.user.id, "event")).some(n => n.title.includes("Tomorrow: Mom's birthday")));
+  check("a leap-day birthday lands on Feb 28 in normal years", evMod.nextOccurrence({ startsAt: new Date("2000-02-29T00:00:00Z"), repeat: "yearly" }, new Date("2027-01-01T00:00:00Z"))!.toISOString().startsWith("2027-02-28"));
+  await prisma.familyEvent.delete({ where: { id: hubEv.id } });
+  check("delete an event", (await call("DELETE", `/events/${bday.data.id}`, parent)).status === 204);
+
+  // ---- challenges, badges
+  section = "challenges";
+  const chW = await call("POST", "/challenges", parent, { circleId: hub.id, title: "Walk 5 km this week", metric: "distance", target: 5000, days: 7 });
+  check("start a challenge", chW.status === 201);
+  check("members get told", (await hubNotes(mom.user.id, "fitness")).some(n => n.body.startsWith("Walk 5 km this week")));
+  check("outsiders can't start one", (await call("POST", "/challenges", outsider, { circleId: hub.id, title: "x", metric: "workouts", target: 3, days: 3 })).status === 403);
+  check("distance goals are at least 100 m", (await call("POST", "/challenges", parent, { circleId: hub.id, title: "x", metric: "distance", target: 5, days: 3 })).status === 400);
+  const cs0 = (await call("GET", `/challenges?circleId=${hub.id}`, dad.token)).data.find((c: any) => c.id === chW.data.id);
+  check("everyone starts at zero", cs0.active && cs0.standings.length === 3 && cs0.standings.every((s: any) => s.value === 0 && !s.done) && cs0.mine === 0, cs0);
+  const wkt = (distanceM: number, mins = 60) => ({ kind: "walk", startedAt: new Date(Date.now() + mins * 0).toISOString(), durationSec: Math.max(60, Math.round(distanceM / 1.3)), distanceM, route: [[12.9, 77.5], [12.91, 77.51]], shared: true });
+  await call("POST", "/activities", kid, wkt(2000, 50));
+  await call("POST", "/activities", parent, wkt(1500, 40));
+  await call("POST", "/activities", parent, wkt(2500, 30));
+  const cs1 = (await call("GET", `/challenges?circleId=${hub.id}`, dad.token)).data.find((c: any) => c.id === chW.data.id);
+  check("standings count shared workouts and rank them", cs1.standings[0].user.id === demo.user.id && cs1.standings[0].value >= 4000 && cs1.standings.find((s: any) => s.user.id === mom.user.id).value >= 2000, cs1.standings);
+  await call("POST", "/activities", parent, wkt(1500, 20));
+  const cs2 = (await call("GET", `/challenges?circleId=${hub.id}`, parent)).data.find((c: any) => c.id === chW.data.id);
+  check("reaching the goal marks it done and celebrates", cs2.standings.find((s: any) => s.user.id === demo.user.id).done && (await hubNotes(demo.user.id, "fitness")).some(n => n.title.includes("Challenge complete")) && (await prisma.challengeWin.count({ where: { challengeId: chW.data.id, userId: demo.user.id } })) === 1, cs2.standings);
+  await call("POST", "/activities", parent, wkt(1000, 10));
+  check("a win is only counted once", (await prisma.challengeWin.count({ where: { challengeId: chW.data.id, userId: demo.user.id } })) === 1 && (await hubNotes(demo.user.id, "fitness")).filter(n => n.title.includes("Challenge complete") && n.body.includes("Walk 5 km")).length === 1);
+  const badges = await call("GET", "/badges", parent);
+  const bd = (id: string) => badges.data.find((b: any) => b.id === id);
+  check("badges are worked out from real activity", badges.data.length === 8 && bd("first-steps").earned && bd("challenge-win").earned && !bd("hundred-km").earned && bd("hundred-km").goal === 100, badges.data);
+  check("someone who has done nothing has none", (await call("GET", "/badges", outsider)).data.every((b: any) => !b.earned));
+  check("a member can't delete someone else's challenge", (await call("DELETE", `/challenges/${chW.data.id}`, dad.token)).status === 403);
+  check("the creator can", (await call("DELETE", `/challenges/${chW.data.id}`, parent)).status === 204);
+  const nPassed0 = (await hubNotes(mom.user.id, "fitness")).filter(n => n.title.includes("just passed you")).length;
+  await call("POST", "/activities", dad.token, wkt(3000));
+  check("a lower total doesn't trigger a pass", (await hubNotes(mom.user.id, "fitness")).filter(n => n.title.includes("just passed you")).length === nPassed0);
+  await call("POST", "/activities", dad.token, wkt(3000));
+  check("overtaking someone this week tells them", (await hubNotes(mom.user.id, "fitness")).filter(n => n.title.includes("just passed you")).length === nPassed0 + 1 && (await hubNotes(mom.user.id, "fitness"))[0].title.includes("Dad"));
+  await prisma.activity.deleteMany({ where: { userId: { in: [demo.user.id, mom.user.id, dad.user.id] }, createdAt: { gte: new Date(Date.now() - 3600e3) }, startedAt: { gte: new Date(Date.now() - 2 * 3600e3) } } });
+
+  // ---- chores and rewards
+  section = "chores";
+  check("only a parent can create chores", (await call("POST", "/chores", kid, { circleId: hub.id, title: "Dishes", points: 5 })).status === 403);
+  check("points must be positive", (await call("POST", "/chores", parent, { circleId: hub.id, title: "Dishes", points: 0 })).status === 400);
+  const chD = await call("POST", "/chores", parent, { circleId: hub.id, title: "Wash dishes", points: 10, assigneeId: mom.user.id, repeat: "daily" });
+  const chO = await call("POST", "/chores", parent, { circleId: hub.id, title: "Clean the garage", points: 30, repeat: "once" });
+  check("create chores", chD.status === 201 && chO.status === 201);
+  check("the assignee is told", (await hubNotes(mom.user.id, "chores")).some(n => n.title === "New chore for you"));
+  const board0 = (await call("GET", `/chores?circleId=${hub.id}`, kid)).data;
+  check("the kid sees chores they can do, with zero points", board0.chores.length === 2 && board0.chores.find((c: any) => c.id === chD.data.id).canDo && board0.myPoints === 0 && !board0.isOwner && board0.pending.length === 0, board0);
+  check("a chore for someone else can't be done", (await call("POST", `/chores/${chD.data.id}/done`, dad.token, {})).status === 403);
+  check("outsiders can't see chores", (await call("GET", `/chores?circleId=${hub.id}`, outsider)).status === 403);
+  const nOwn0 = (await hubNotes(demo.user.id, "chores")).length;
+  const dn = await call("POST", `/chores/${chD.data.id}/done`, kid, {});
+  check("marking done waits for approval", dn.status === 201 && dn.data.status === "pending" && (await call("GET", `/chores?circleId=${hub.id}`, kid)).data.myPoints === 0);
+  check("the parent is asked to approve", (await hubNotes(demo.user.id, "chores")).length === nOwn0 + 1);
+  check("can't do it twice in a day", (await call("POST", `/chores/${chD.data.id}/done`, kid, {})).status === 409);
+  const pb = (await call("GET", `/chores?circleId=${hub.id}`, parent)).data;
+  check("the parent sees it in the approval list", pb.isOwner && pb.pending.length === 1 && pb.pending[0].points === 10 && pb.pending[0].user.id === mom.user.id, pb.pending);
+  check("a kid can't approve", (await call("POST", `/chores/done/${dn.data.id}/review`, kid, { approve: true })).status === 403);
+  check("approve gives the points", (await call("POST", `/chores/done/${dn.data.id}/review`, parent, { approve: true })).data.status === "approved" && (await call("GET", `/chores?circleId=${hub.id}`, kid)).data.myPoints === 10);
+  check("and tells the kid", (await hubNotes(mom.user.id, "chores"))[0].title === "+10 points");
+  check("it can't be approved twice", (await call("POST", `/chores/done/${dn.data.id}/review`, parent, { approve: true })).status === 409 && (await call("GET", `/chores?circleId=${hub.id}`, kid)).data.myPoints === 10);
+  const dn2 = await call("POST", `/chores/${chO.data.id}/done`, kid, {});
+  check("reject sends it back", (await call("POST", `/chores/done/${dn2.data.id}/review`, parent, { approve: false })).data.status === "rejected" && (await call("GET", `/chores?circleId=${hub.id}`, kid)).data.myPoints === 10);
+  const dn3 = await call("POST", `/chores/${chO.data.id}/done`, kid, {});
+  check("a rejected chore can be redone", dn3.status === 201 && dn3.data.status === "pending");
+  await call("POST", `/chores/done/${dn3.data.id}/review`, parent, { approve: true });
+  check("a one-time chore can't be done again", (await call("POST", `/chores/${chO.data.id}/done`, dad.token, {})).status === 409 && (await call("GET", `/chores?circleId=${hub.id}`, kid)).data.myPoints === 40);
+  const lead = (await call("GET", `/chores?circleId=${hub.id}`, dad.token)).data.balances;
+  check("balances rank everyone", lead[0].user.id === mom.user.id && lead[0].points === 40 && lead.length === 3, lead);
+
+  const rw = await call("POST", "/rewards", parent, { circleId: hub.id, title: "Ice cream trip", cost: 50 });
+  const rw2 = await call("POST", "/rewards", parent, { circleId: hub.id, title: "Extra screen time", cost: 30 });
+  check("a kid can't make rewards", (await call("POST", "/rewards", kid, { circleId: hub.id, title: "x", cost: 1 })).status === 403 && rw.status === 201);
+  check("can't claim without enough points", (await call("POST", `/rewards/${rw.data.id}/claim`, kid, {})).status === 400);
+  const cl = await call("POST", `/rewards/${rw2.data.id}/claim`, kid, {});
+  check("claiming spends the points", cl.status === 201 && cl.data.points === 10 && (await call("GET", `/chores?circleId=${hub.id}`, kid)).data.myPoints === 10, cl.data);
+  check("a second claim can't overspend", (await call("POST", `/rewards/${rw2.data.id}/claim`, kid, {})).status === 400);
+  const pc = (await call("GET", `/chores?circleId=${hub.id}`, parent)).data.claims;
+  check("the parent sees the request", pc.length === 1 && pc[0].title === "Extra screen time" && pc[0].user.id === mom.user.id, pc);
+  check("a kid can't mark it given", (await call("POST", `/rewards/claims/${cl.data.id}/given`, kid, {})).status === 403);
+  check("the parent marks it given", (await call("POST", `/rewards/claims/${cl.data.id}/given`, parent, {})).data.status === "given" && (await call("POST", `/rewards/claims/${cl.data.id}/given`, parent, {})).status === 409);
+  check("removing a chore keeps points history", (await call("DELETE", `/chores/${chD.data.id}`, parent)).status === 204 && (await call("GET", `/chores?circleId=${hub.id}`, kid)).data.myPoints === 10 && (await call("GET", `/chores?circleId=${hub.id}`, kid)).data.chores.length === 1);
+  check("a badge comes from approved chores", (await call("GET", "/badges", kid)).data.find((b: any) => b.id === "helper").value === 2);
+
+  // ---- albums and memories
+  section = "albums";
+  const al = await call("POST", "/albums", kid, { circleId: hub.id, title: "Goa trip" });
+  check("create an album", al.status === 201 && (await call("POST", "/albums", outsider, { circleId: hub.id, title: "x" })).status === 403);
+  const ph = await call("POST", `/albums/${al.data.id}/photos`, kid, { url: "http://localhost/uploads/a.jpg", caption: "Beach" });
+  check("add a photo", ph.status === 201);
+  check("a photo needs a real URL", (await call("POST", `/albums/${al.data.id}/photos`, kid, { url: "nope" })).status === 400);
+  check("the family is told about new photos", (await hubNotes(dad.user.id, "comment")).some(n => n.title.includes("added a photo") && n.body.includes("Goa trip")));
+  const lst = await call("GET", `/albums?circleId=${hub.id}`, dad.token);
+  check("album list shows count and cover", lst.data.length === 1 && lst.data[0].count === 1 && lst.data[0].cover === "http://localhost/uploads/a.jpg", lst.data);
+  const ad = await call("GET", `/albums/${al.data.id}`, dad.token);
+  check("album shows photos with who added them", ad.data.photos.length === 1 && ad.data.photos[0].by.id === mom.user.id && ad.data.photos[0].caption === "Beach", ad.data);
+  check("outsiders can't open an album", (await call("GET", `/albums/${al.data.id}`, outsider)).status === 404);
+  check("only the adder or an owner can remove a photo", (await call("DELETE", `/albums/photos/${ph.data.id}`, dad.token)).status === 403);
+
+  const mm = new Date(); mm.setUTCFullYear(mm.getUTCFullYear() - 2);
+  await prisma.albumPhoto.create({ data: { albumId: al.data.id, url: "http://localhost/uploads/old.jpg", caption: "Two years ago", uploadedById: mom.user.id, createdAt: mm } });
+  const mem = await call("GET", "/memories/today", dad.token);
+  check("on this day shows photos from earlier years", mem.data.some((m: any) => m.yearsAgo === 2 && m.url.endsWith("old.jpg") && m.text === "Two years ago") && !mem.data.some((m: any) => m.url.endsWith("a.jpg")), mem.data);
+  check("outsiders see no memories from my circle", (await call("GET", "/memories/today", outsider)).data.length === 0);
+  await prisma.pushToken.upsert({ where: { token: "ExponentPushToken[dad-mem]" }, update: {}, create: { token: "ExponentPushToken[dad-mem]", userId: dad.user.id, platform: "android" } });
+  await prisma.user.updateMany({ data: { memoryDate: null } });
+  const albMod = await import("./routes/albums");
+  const nine = new Date(); nine.setUTCHours(9, 30, 0, 0);
+  const nMem0 = (await hubNotes(dad.user.id, "memory")).length;
+  check("no memory nudge in the middle of the night", (await albMod.runMemories(new Date(nine.getTime() - 9 * 3600e3))) === 0);
+  check("a morning nudge when there are memories, once", (await albMod.runMemories(nine)) >= 1 && (await albMod.runMemories(nine)) === 0 && (await hubNotes(dad.user.id, "memory")).length === nMem0 + 1);
+  await prisma.pushToken.delete({ where: { token: "ExponentPushToken[dad-mem]" } });
+  check("an owner can remove any photo", (await call("DELETE", `/albums/photos/${ph.data.id}`, parent)).status === 204);
+  check("deleting an album removes its photos", (await call("DELETE", `/albums/${al.data.id}`, kid)).status === 204 && (await prisma.albumPhoto.count({ where: { albumId: al.data.id } })) === 0);
+
+  await prisma.circle.delete({ where: { id: hub.id } });
+  section = "hub";
+
   [sDemo, sMom, sOut, sDoc].forEach(s => s.disconnect());
   server.close(); pushServer.close();
   await prisma.$disconnect();

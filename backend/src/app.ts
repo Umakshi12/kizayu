@@ -24,6 +24,13 @@ import { listsRouter } from "./routes/lists";
 import { emergencyRouter } from "./routes/emergency";
 import { sosPublicRouter, sosRouter } from "./routes/sos";
 import { activitiesRouter } from "./routes/activities";
+import { prefsRouter } from "./routes/prefs";
+import { habitsRouter } from "./routes/habits";
+import { checkinsRouter } from "./routes/checkins";
+import { eventsRouter } from "./routes/events";
+import { challengesRouter } from "./routes/challenges";
+import { choresRouter } from "./routes/chores";
+import { albumsRouter } from "./routes/albums";
 import { UPLOAD_DIR } from "./services/storage";
 
 export function createApp() {
@@ -54,7 +61,7 @@ export function createApp() {
 
   app.use(requireAuth);
   app.use(circlesRouter, socialRouter, dayRouter, healthRouter, doctorsRouter, gamesRouter, chatRouter, safetyRouter,
-    notificationsRouter, premiumRouter, supportRouter, moderationRouter, listsRouter, emergencyRouter, sosRouter, activitiesRouter);
+    notificationsRouter, premiumRouter, supportRouter, moderationRouter, listsRouter, emergencyRouter, sosRouter, activitiesRouter, prefsRouter, habitsRouter, checkinsRouter, eventsRouter, challengesRouter, choresRouter, albumsRouter);
 
   app.use((_req, res) => res.status(404).json({ error: "Not found" }));
   app.use(errorHandler);

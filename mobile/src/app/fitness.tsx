@@ -9,6 +9,7 @@ import { useAuth } from "../auth";
 import { haptic } from "../haptics";
 import { fmtDuration, fmtKm, fmtPace, kindInfo } from "../fitness";
 import { Text } from "../components/Text";
+import { ChallengesSection } from "../components/Challenges";
 import { Avatar, Button, Card, Empty, ErrorView, Header, IconTile, Loading, Pill, Screen, SectionHeader, timeAgo } from "../components/ui";
 import { colors, glow, gradients, radius } from "../theme";
 import type { Circle, FeedWorkout, FitnessSummary, LeaderRow } from "../types";
@@ -117,6 +118,8 @@ export default function Fitness() {
               </View>
             ))}
           </Card>
+
+          {circleId && <ChallengesSection circleId={circleId} />}
 
           <SectionHeader title="Recent activity" />
           {feed.isLoading ? <Loading rows={2} /> : (feed.data?.length ?? 0) === 0 ? (

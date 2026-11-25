@@ -57,6 +57,12 @@ function Navigator({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="emergency" />
           <Stack.Screen name="circles" />
           <Stack.Screen name="notifications" />
+          <Stack.Screen name="notification-settings" />
+          <Stack.Screen name="checkin" />
+          <Stack.Screen name="calendar" />
+          <Stack.Screen name="chores" />
+          <Stack.Screen name="albums" />
+          <Stack.Screen name="badges" />
           <Stack.Screen name="premium" options={{ animation: "slide_from_bottom" }} />
           <Stack.Screen name="help" />
           <Stack.Screen name="about" />

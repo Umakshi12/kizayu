@@ -19,14 +19,26 @@ const EVENT_ICON: Record<string, { name: IconName; color: string; bg: string }> 
   alert: { name: "warning", color: colors.warn, bg: colors.warnSoft },
 };
 
-const SHORTCUTS: { label: string; caption: string; icon: IconName; href: string; grad: readonly [string, string, ...string[]] }[] = [
-  { label: "Health Vault", caption: "Vitals & medicines", icon: "pulse", href: "/health/me", grad: gradients.danger },
-  { label: "Family Doctor", caption: "Records & chat", icon: "medical", href: "/doctor", grad: gradients.success },
-  { label: "Safety", caption: "Location & SOS", icon: "shield-checkmark", href: "/safety", grad: gradients.ocean },
-  { label: "Fitness", caption: "Walks, runs & rides", icon: "walk", href: "/fitness", grad: gradients.sunrise },
-  { label: "Family lists", caption: "Groceries & to-dos", icon: "cart", href: "/lists", grad: gradients.success },
-  { label: "Emergency card", caption: "Blood group & contacts", icon: "id-card", href: "/emergency", grad: gradients.danger },
-  { label: "Games", caption: "Play together", icon: "game-controller", href: "/games", grad: gradients.sunrise },
+type Tool = { label: string; caption: string; icon: IconName; href: string; grad: readonly [string, string, ...string[]] };
+const SECTIONS: { title: string; tools: Tool[] }[] = [
+  { title: "Health and safety", tools: [
+    { label: "Health Vault", caption: "Vitals & medicines", icon: "pulse", href: "/health/me", grad: gradients.danger },
+    { label: "Family Doctor", caption: "Records & chat", icon: "medical", href: "/doctor", grad: gradients.success },
+    { label: "Safety", caption: "Location & SOS", icon: "shield-checkmark", href: "/safety", grad: gradients.ocean },
+    { label: "Safe walk", caption: "Timer that alerts family", icon: "timer", href: "/checkin", grad: gradients.sunrise },
+    { label: "Emergency card", caption: "Blood group & contacts", icon: "id-card", href: "/emergency", grad: gradients.danger },
+  ] },
+  { title: "Together", tools: [
+    { label: "Calendar", caption: "Birthdays & plans", icon: "calendar", href: "/calendar", grad: gradients.ocean },
+    { label: "Family lists", caption: "Groceries & to-dos", icon: "cart", href: "/lists", grad: gradients.success },
+    { label: "Chores & rewards", caption: "Points for helping", icon: "star", href: "/chores", grad: gradients.sunrise },
+    { label: "Photo albums", caption: "Trips & memories", icon: "images", href: "/albums", grad: gradients.danger },
+  ] },
+  { title: "Move and play", tools: [
+    { label: "Fitness", caption: "Walks, runs & challenges", icon: "walk", href: "/fitness", grad: gradients.sunrise },
+    { label: "Badges", caption: "Streaks & wins", icon: "ribbon", href: "/badges", grad: gradients.success },
+    { label: "Games", caption: "Play together", icon: "game-controller", href: "/games", grad: gradients.ocean },
+  ] },
 ];
 
 export default function Care() {
@@ -117,18 +129,22 @@ export default function Care() {
             <Text style={{ color: colors.faint, fontSize: 12, marginTop: 12 }}>Tap your photo to change your status. Tap someone to open their Health Vault.</Text>
           </Card>
 
-          <SectionHeader title="Care tools" />
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-            {SHORTCUTS.map(sc => (
-              <Card key={sc.label} onPress={() => router.push(sc.href as never)} style={{ width: "47.8%", padding: 14, gap: 10 }}>
-                <IconTile icon={sc.icon} gradient={sc.grad} size={42} />
-                <View>
-                  <Text style={{ fontWeight: "700" }}>{sc.label}</Text>
-                  <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{sc.caption}</Text>
-                </View>
-              </Card>
-            ))}
-          </View>
+          {SECTIONS.map(sec => (
+            <View key={sec.title}>
+              <SectionHeader title={sec.title} />
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+                {sec.tools.map(sc => (
+                  <Card key={sc.label} onPress={() => router.push(sc.href as never)} style={{ width: "47.8%", padding: 14, gap: 10 }}>
+                    <IconTile icon={sc.icon} gradient={sc.grad} size={42} />
+                    <View>
+                      <Text style={{ fontWeight: "700" }}>{sc.label}</Text>
+                      <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{sc.caption}</Text>
+                    </View>
+                  </Card>
+                ))}
+              </View>
+            </View>
+          ))}
 
           <SectionHeader title="Recent activity" />
           {pulse.isLoading ? <Loading rows={2} /> : (pulse.data?.events.length ?? 0) === 0 ? (

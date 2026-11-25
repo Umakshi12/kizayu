@@ -49,3 +49,15 @@ export async function pulse(userId: string, kind: string, text: string, imageUrl
 }
 
 export const publicUser = { id: true, name: true, username: true, avatarUrl: true, status: true } as const;
+
+/** The person's role in a circle ("owner" = parent/admin), or null if they aren't a member. */
+export async function roleIn(userId: string, circleId: string): Promise<"owner" | "member" | null> {
+  const m = await prisma.circleMember.findUnique({ where: { circleId_userId: { circleId, userId } } });
+  return m ? (m.role === "owner" ? "owner" : "member") : null;
+}
+
+export async function assertOwner(userId: string, circleId: string) {
+  const r = await roleIn(userId, circleId);
+  if (!r) throw new HttpError(403, "Not a member of this circle");
+  if (r !== "owner") throw new HttpError(403, "Only a circle owner can do that");
+}
