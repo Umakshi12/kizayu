@@ -27,6 +27,15 @@ export default function Study() {
     <Screen tab>
       <Header title="Study" subtitle="Brain Gym and Aaj Ka Plan" />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}>
+        <Card onPress={() => { haptic.tap(); router.push("/buddy"); }} style={{ padding: 14, marginBottom: 6, flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <IconTile icon="chatbubble-ellipses" gradient={gradients.primary} size={46} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: "800", fontSize: 16 }}>Kizayu Buddy</Text>
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>Plan your day, get quizzed, or just talk it out</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.faint} />
+        </Card>
+
         <SectionHeader title="Brain Gym" action="Open" onAction={() => router.push("/brain")} />
         <BrainSummary />
 

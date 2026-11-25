@@ -1086,6 +1086,67 @@ async function main() {
   await prisma.timetableSlot.deleteMany({ where: { userId: kidId } });
   await prisma.studyNote.deleteMany({ where: { userId: kidId } });
 
+
+  // ---- Study buddy ----
+  section = "buddy";
+  const b0 = await call("GET", "/buddy", kid);
+  check("the buddy starts with an empty chat", b0.status === 200 && b0.data.messages.length === 0 && b0.data.used === 0 && b0.data.limit >= 8 && b0.data.mode === "scripted", b0.data);
+  const myFirst = mom.user.name.split(" ")[0];
+  const hi = await call("POST", "/buddy/chat", kid, { text: "hi" });
+  check("without a model it answers from simple rules and greets by name", hi.status === 201 && hi.data.buddy.source === "scripted" && hi.data.buddy.text.includes(myFirst) && hi.data.used === 1, hi.data);
+  const bTmr = new Date(Date.now() + 86400e3).toISOString().slice(0, 10);
+  await call("POST", "/study/assignments", kid, { title: "Chemistry lab file", dueDate: bTmr });
+  const pl = await call("POST", "/buddy/chat", kid, { text: "What's due?", mood: "stressed" });
+  check("it knows what is due and answers the mood", pl.data.buddy.text.includes("Chemistry lab file") && pl.data.buddy.text.includes("tomorrow") && pl.data.user.mood === "stressed", pl.data);
+  const bad = await call("POST", "/buddy/chat", kid, { text: "   " });
+  check("an empty message is refused", bad.status === 400 && (await call("POST", "/buddy/chat", kid, { text: "x".repeat(501) })).status === 400 && (await call("POST", "/buddy/chat", kid, { text: "hi", mood: "angry" })).status === 400);
+  const cr = await call("POST", "/buddy/chat", kid, { text: "I want to die" });
+  check("a message about self-harm gets a safe reply with a helpline, not a model reply", cr.status === 201 && cr.data.buddy.source === "safety" && cr.data.buddy.text.includes("14416"), cr.data);
+
+  // A pretend OpenAI-compatible model, so we can check exactly what the server sends.
+  const http2 = await import("http");
+  let llmSeen: any = null, llmMode: "ok" | "fail" = "ok";
+  const llm = http2.createServer((rq, rs) => {
+    let raw = ""; rq.on("data", c => (raw += c));
+    rq.on("end", () => {
+      llmSeen = { url: rq.url, auth: rq.headers.authorization, body: JSON.parse(raw) };
+      if (llmMode === "fail") { rs.statusCode = 500; return void rs.end("boom"); }
+      rs.setHeader("content-type", "application/json");
+      rs.end(JSON.stringify({ choices: [{ message: { content: "  Try the last step yourself: what is 6 x 7?  " } }] }));
+    });
+  });
+  await new Promise<void>(r => llm.listen(0, r));
+  process.env.BUDDY_API_URL = `http://localhost:${(llm.address() as any).port}/v1`;
+  process.env.BUDDY_API_KEY = "test-key"; process.env.BUDDY_MODEL = "tiny-model";
+  check("the chat reports that a model is connected", (await call("GET", "/buddy", kid)).data.mode === "model");
+  const ml = await call("POST", "/buddy/chat", kid, { text: "Explain multiplication", mood: "sleepy" });
+  const sys = llmSeen?.body?.messages?.[0]?.content ?? "";
+  check("with a model connected the reply comes from it", ml.data.buddy.source === "model" && ml.data.buddy.text === "Try the last step yourself: what is 6 x 7?", ml.data);
+  check("the model gets the key, model name and endpoint", llmSeen.url === "/v1/chat/completions" && llmSeen.auth === "Bearer test-key" && llmSeen.body.model === "tiny-model" && llmSeen.body.max_tokens === 300, llmSeen);
+  check("the model is told about the student's plan and mood but not given other data", sys.includes(myFirst) && sys.includes("Chemistry lab file") && sys.includes("feel sleepy") && sys.includes("AI, not a person") && !sys.includes("@"), sys);
+  const msgs = llmSeen.body.messages;
+  check("recent conversation is sent as history, last turn is the new message", msgs[msgs.length - 1].role === "user" && msgs[msgs.length - 1].content === "Explain multiplication" && msgs.some((m: any) => m.role === "assistant"), msgs.map((m: any) => m.role));
+  const callsBefore = llmSeen;
+  llmSeen = null;
+  const crisis2 = await call("POST", "/buddy/chat", kid, { text: "I want to kill myself" });
+  check("self-harm messages never reach the model", crisis2.data.buddy.source === "safety" && llmSeen === null, crisis2.data);
+  llmMode = "fail";
+  const fb = await call("POST", "/buddy/chat", kid, { text: "hello" });
+  check("if the model is down, the buddy falls back to simple replies", fb.status === 201 && fb.data.buddy.source === "scripted", fb.data);
+  llmMode = "ok";
+
+  const lim = (await call("GET", "/buddy", kid)).data;
+  await prisma.buddyMessage.createMany({ data: Array.from({ length: Math.max(0, lim.limit - lim.used) }, () => ({ userId: kidId, role: "user", text: "filler", date: new Date().toISOString().slice(0, 10) })) });
+  const over = await call("POST", "/buddy/chat", kid, { text: "one more" });
+  check("the daily message limit is enforced", over.status === 429 && /tomorrow|Premium/.test(over.data.error), over);
+  check("but safety replies still work at the limit", (await call("POST", "/buddy/chat", kid, { text: "I want to die" })).status === 201);
+  check("other people cannot see my buddy chat", (await call("GET", "/buddy", outsider)).data.messages.length === 0);
+  check("the chat can be cleared", (await call("DELETE", "/buddy", kid)).status === 204 && (await call("GET", "/buddy", kid)).data.messages.length === 0);
+  delete process.env.BUDDY_API_URL; delete process.env.BUDDY_API_KEY; delete process.env.BUDDY_MODEL;
+  llm.close();
+  void callsBefore;
+  await prisma.assignment.deleteMany({ where: { userId: kidId } });
+
   await prisma.circle.delete({ where: { id: hub.id } });
   section = "hub";
 

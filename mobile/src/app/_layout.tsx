@@ -63,6 +63,7 @@ function Navigator({ fontsReady }: { fontsReady: boolean }) {
           <Stack.Screen name="chores" />
           <Stack.Screen name="albums" />
           <Stack.Screen name="badges" />
+          <Stack.Screen name="buddy" />
           <Stack.Screen name="brain" />
           <Stack.Screen name="brain-play" options={{ gestureEnabled: false }} />
           <Stack.Screen name="study-timetable" />

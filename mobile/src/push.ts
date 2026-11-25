@@ -70,6 +70,7 @@ export function routeFor(data: Record<string, unknown> | undefined): string | nu
     case "/albums": return "/albums";
     case "/study-assignments": return "/study-assignments";
     case "/brain": return "/brain";
+    case "/buddy": return "/buddy";
     case "/safety": return "/safety";
     case "/health": return "/health/me";
     case "sos": return "/"; // Home shows the SOS banner with the live link

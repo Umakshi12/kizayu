@@ -61,6 +61,7 @@ model User {
   assignments   Assignment[]
   slots         TimetableSlot[]
   studyNotes    StudyNote[]
+  buddyMessages BuddyMessage[]
   checkIns      CheckIn[]
   notifyPrefs   NotifyPrefs?
   rsvps         EventRsvp[]
@@ -746,4 +747,18 @@ model StudyNote {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId])
+}
+
+// ---------------------------------------------------------------- study buddy chat (private to each person)
+model BuddyMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  role      String   // user | buddy
+  text      String
+  mood      String?  // energetic | chill | stressed | sleepy, sent with a user message
+  source    String?  // for buddy replies: model | scripted | safety
+  date      String   // the user's local day, used for the daily message limit
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
 }

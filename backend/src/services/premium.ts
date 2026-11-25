@@ -9,8 +9,8 @@ export type PlanId = keyof typeof PLANS;
 
 /** Free-tier limits; Premium removes them. */
 export const LIMITS = {
-  free: { ownedCircles: 2, locationShareHours: 4, healthRecords: 20 },
-  premium: { ownedCircles: 20, locationShareHours: 24, healthRecords: 1000 },
+  free: { ownedCircles: 2, locationShareHours: 4, healthRecords: 20, buddyPerDay: 8 },
+  premium: { ownedCircles: 20, locationShareHours: 24, healthRecords: 1000, buddyPerDay: 100 },
 };
 
 export async function activeSubscription(userId: string) {

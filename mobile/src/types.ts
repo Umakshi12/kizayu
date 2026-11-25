@@ -150,3 +150,9 @@ export interface StudyNote {
   id: string; title: string; kind: "note" | "formula" | "link" | "file"; body: string; url: string | null;
   subjectId: string | null; subject: string | null; color: string | null; createdAt: string;
 }
+
+// ---- study buddy
+export type BuddyMood = "energetic" | "chill" | "stressed" | "sleepy";
+export interface BuddyMessage { id: string; role: "user" | "buddy"; text: string; mood: BuddyMood | null; source: "model" | "scripted" | "safety" | null; createdAt: string }
+export interface BuddyState { messages: BuddyMessage[]; used: number; limit: number; mode: "model" | "scripted" }
+export interface BuddyReply { user: BuddyMessage; buddy: BuddyMessage; used: number; limit: number }

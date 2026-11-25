@@ -50,3 +50,7 @@ export const PREMIUM_ENABLED = env.PREMIUM_ENABLED ? env.PREMIUM_ENABLED === "tr
 
 /** Contact address shown on the public privacy/terms pages. */
 export const CONTACT_EMAIL = env.SUPPORT_EMAIL ?? "support@kizayu.app";
+
+// Study buddy: any OpenAI-compatible chat endpoint (OpenAI, Groq, OpenRouter, Together, or your own model served with vLLM / llama.cpp / Ollama).
+// Read at call time, so it can be changed without a code change. Without it the buddy answers from simple built-in rules.
+export const buddyConfig = () => ({ url: process.env.BUDDY_API_URL, key: process.env.BUDDY_API_KEY, model: process.env.BUDDY_MODEL ?? "gpt-4o-mini" });

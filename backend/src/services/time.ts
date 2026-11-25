@@ -34,3 +34,6 @@ export async function dayOfUser(userId: string, now = new Date()): Promise<strin
   const u = await prisma.user.findUnique({ where: { id: userId }, select: { tzOffsetMin: true } });
   return localDate(now, u?.tzOffsetMin ?? 0);
 }
+
+/** "4:30 PM" from minutes since midnight. */
+export const fmtMin = (m: number) => { const h = Math.floor(m / 60) % 24; return `${h % 12 || 12}:${String(m % 60).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`; };
