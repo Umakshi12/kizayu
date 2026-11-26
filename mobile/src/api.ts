@@ -11,17 +11,23 @@ export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
-export async function api<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
+/** Requests give up after this long, so the app never hangs forever on a bad connection or a sleeping server. */
+const TIMEOUT_MS = 30_000;
+
+export async function api<T = unknown>(method: string, path: string, body?: unknown, timeoutMs = TIMEOUT_MS): Promise<T> {
   let res: Response;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     res = await fetch(API_URL + path, {
       method,
       headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: ctl.signal,
     });
   } catch {
-    throw new ApiError(0, `Can't reach the server at ${API_URL}. Is the backend running?`);
-  }
+    throw new ApiError(0, ctl.signal.aborted ? "The server is taking too long to answer. Check your internet and try again." : "Can't reach Kizayu. Check your internet connection and try again.");
+  } finally { clearTimeout(timer); }
   if (res.status === 401 && token) onUnauthorized?.();
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
@@ -29,7 +35,7 @@ export async function api<T = unknown>(method: string, path: string, body?: unkn
   return data as T;
 }
 
-export const get = <T,>(path: string) => api<T>("GET", path);
+export const get = <T,>(path: string, timeoutMs?: number) => api<T>("GET", path, undefined, timeoutMs);
 export const post = <T,>(path: string, body?: unknown) => api<T>("POST", path, body ?? {});
 export const put = <T,>(path: string, body?: unknown) => api<T>("PUT", path, body ?? {});
 export const patch = <T,>(path: string, body?: unknown) => api<T>("PATCH", path, body ?? {});

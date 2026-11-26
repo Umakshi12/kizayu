@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Platform, useWindowDimensions, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack } from "expo-router";
@@ -28,7 +28,11 @@ function Navigator({ fontsReady }: { fontsReady: boolean }) {
   const { user, loading } = useAuth();
   const ready = fontsReady && !loading;
   useEffect(() => { if (ready) void SplashScreen.hideAsync().catch(() => undefined); }, [ready]);
-  if (!ready) return null; // the splash screen stays up until fonts and the session are ready
+  // Last line of defence: never leave the logo screen up for more than 20 seconds.
+  const [gaveUp, setGaveUp] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setGaveUp(true), 20_000); return () => clearTimeout(t); }, []);
+  useEffect(() => { if (gaveUp) void SplashScreen.hideAsync().catch(() => undefined); }, [gaveUp]);
+  if (!ready && !(gaveUp && fontsReady)) return null; // the splash screen stays up until fonts and the session are ready
   return (
     <>
       <NotificationsBridge />

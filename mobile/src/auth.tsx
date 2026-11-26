@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const t = await secure.get(KEY);
-        if (t) { setToken(t); setUser(await get<Me>("/me")); }
+        if (t) { setToken(t); setUser(await get<Me>("/me", 15_000)); } // a short limit, so the logo screen can never hang
       } catch { setToken(null); }
       finally { setLoading(false); }
     })();
